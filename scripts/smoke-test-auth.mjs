@@ -30,15 +30,14 @@ await page.waitForURL((url) => url.searchParams.has("erro"), { timeout: 10000 })
 const erroVisivel = await page.locator("text=Usuário ou senha inválidos").isVisible();
 check("teste2: senha errada -> mostra mensagem de erro", erroVisivel);
 
-// Teste 3: login correto redireciona pra home autenticada
+// Teste 3: login correto redireciona pro Salão autenticado
 await page.goto(`${BASE}/login`);
 await page.fill("#usuario", "matheus.marques");
 await page.fill("#senha", "123456");
 await page.click('button[type="submit"]');
 await page.waitForURL(`${BASE}/`, { timeout: 10000 });
-const textoHome = await page.locator("text=Logado como").isVisible();
-const emailCorreto = await page.locator("text=matheus.marques@vulcanprime.local").isVisible();
-check("teste3: login correto -> home mostra usuario logado", textoHome && emailCorreto);
+const salaoVisivel = await page.locator("text=Mesas ocupadas").isVisible();
+check("teste3: login correto -> Salão carrega autenticado", salaoVisivel);
 
 // Teste 4: F5 na pagina autenticada mantem a sessao (nao volta pro login)
 await page.reload();
