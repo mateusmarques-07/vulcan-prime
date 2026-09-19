@@ -16,10 +16,25 @@ const files = (await readdir(migrationsDir)).filter((f) => f.endsWith(".sql")).s
 
 await client.connect();
 try {
+  await client.query(`
+    create table if not exists _migrations (
+      filename text primary key,
+      applied_at timestamptz not null default now()
+    );
+  `);
+
+  const { rows } = await client.query("select filename from _migrations");
+  const aplicadas = new Set(rows.map((r) => r.filename));
+
   for (const file of files) {
+    if (aplicadas.has(file)) {
+      console.log(`Ja aplicada, pulando: ${file}`);
+      continue;
+    }
     const sql = await readFile(path.join(migrationsDir, file), "utf8");
     console.log(`Aplicando ${file}...`);
     await client.query(sql);
+    await client.query("insert into _migrations (filename) values ($1)", [file]);
     console.log(`OK: ${file}`);
   }
 } finally {
