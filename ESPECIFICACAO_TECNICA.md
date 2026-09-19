@@ -1061,3 +1061,17 @@ Antes de adicionar qualquer funcionalidade que não esteja descrita neste docume
 1. Subtotal pode ser pago com múltiplas formas de pagamento simultâneas (nova tabela `fechamento_pagamentos`) — necessário pra o caixa/Recebimentos bater certo quando o pagamento é misto.
 2. Gorjeta usa forma de pagamento própria e única, separada do rateio do subtotal (`gorjeta_forma_pagamento_id`/`nome` em `fechamentos`) — reflete o padrão real de conta no cartão + gorjeta em dinheiro.
 3. Divisão por número de pessoas é só informativa (exibida no fechamento/recibo), não uma divisão real por item — isso continua fora do escopo.
+
+**19/09/2026 (mais tarde, Etapas 2-3 implementadas)** — ver seção 34 abaixo: descoberto e contornado um bug real do Next.js com Server Actions repetidas na mesma página.
+
+---
+
+# 34. NOTA TÉCNICA: SERVER ACTIONS x ROUTE HANDLERS
+
+**Descoberta em 19/09/2026, ao implementar a Etapa 3 (Comanda).**
+
+Nesta versão do Next.js (16.3.5, a mesma usada nos outros projetos deste workspace), Server Actions (`"use server"` + `<form action={fn}>`) apresentaram um bug real em `next dev`: a **primeira** chamada numa página funciona (grava no banco e redireciona certo), mas a partir da **segunda** chamada de uma Server Action feita sem sair da página (ex: clicar em 2 produtos diferentes do cardápio em sequência, ou clicar +/− duas vezes), o `redirect()` deixa de chegar no navegador — a requisição aparece nos logs do servidor com `⨯ Error: aborted / code: ECONNRESET`, o dado é gravado certo no banco, mas a tela trava mostrando o estado antigo até um F5 manual.
+
+Foi confirmado com testes reais (Playwright) isolando a causa: trocar a Server Action por uma **Route Handler tradicional** (`src/app/api/.../route.ts` com `export async function POST` + `<form method="POST" action="/api/...">` + `NextResponse.redirect(..., 303)`) resolve o problema completamente, porque a submissão vira um POST nativo do navegador (sem JS por trás), imune a esse bug do runtime client-side do Next.
+
+**Decisão de arquitetura para o resto do projeto:** qualquer tela onde a mesma ação (ou ações diferentes) pode ser disparada mais de uma vez sem navegação completa no meio — Comanda (Etapa 3, já feito, inclusive abrir mesa no Salão foi convertido por consistência), Fechamento (Etapa 4), CRUD de Produtos (Etapa 5), CRUD de Pagamentos (Etapa 6) — deve usar Route Handlers (`src/app/api/.../route.ts`) em vez de Server Actions. Login/logout continuam com Server Action normalmente porque só acontecem uma vez por carregamento de página (não expostos ao bug na prática).
