@@ -1210,3 +1210,23 @@ Segunda rodada de testes reais do Mateus achou um bug crítico de fechamento e p
 - Tabelas novas `entregas` e `entrega_itens` (mesmo padrão de `comandas`/`itens_comanda`: item guarda nome/preço "fotografados" no momento do lançamento).
 
 **Recebimentos ganha filtro por tipo** (Mesa / Balcão (Retirada) / Entrega / Todos) na lista de "Fechamentos individuais" — o pedido original do Mateus. Entregas aparecem na lista como "Entrega #NN" (buscando o número em `entregas` pelo `fechamento_id`, já que não têm `mesa_numero`).
+
+---
+
+# 41. TELA DE ENTREGAS EM 2 COLUNAS + FILTRO DO RECEBIMENTOS PRA TELA INTEIRA + DEPLOY (20/09/2026)
+
+**Decisão do Mateus, quarta rodada do dia**, a partir de um mockup que ele mandou: a tela de Entregas virou uma view só, em 2 colunas — lista das entregas em andamento à esquerda, detalhe da selecionada à direita — em vez de navegar entre páginas separadas pra ver cada entrega. `/entregas/[numero]` foi removida; `/entregas` agora aceita `?numero=NN` pra escolher qual entrega mostrar no painel direito (a lista, o Histórico e as rotas de status/edição/criação redirecionam todas pra essa URL). Sem numero na URL, seleciona a primeira ativa automaticamente.
+
+**Botão "Finalizar" continua separado dos de status Aberta/Em rota.** No mockup original os 3 apareciam como botões iguais lado a lado; como Finalizar não é reversível (já contabiliza o pagamento no caixa), o Mateus concordou em manter Aberta/Em rota como um par que alterna livremente (dá pra voltar de Em Rota pra Aberta), e Finalizar como ação separada, com destaque visual diferente — evita que um clique errado feche uma entrega que ainda não foi paga.
+
+**Recebimentos: filtro por tipo (e por forma) agora vale pra tela inteira**, não só pra lista de baixo. Antes, trocar o filtro de Tipo só mudava a tabela "Fechamentos individuais" — os cards do topo (Subtotal/Gorjetas/Total) e o "Por forma de pagamento" continuavam mostrando o dia inteiro, o que confundia. Agora os três blocos respeitam o mesmo filtro (`getRecebimentos()` recebe `{ forma, tipo }` e filtra tudo internamente antes de calcular resumo/porForma/lista). Um fechamento com pagamento dividido conta inteiro se **alguma** das formas usadas bater com o filtro (não é rateado).
+
+**Novo card "Taxa de entrega"** nos totais do topo, ao lado de Subtotal/Gorjetas/Total — mesma lógica de já separar a gorjeta.
+
+**Logo da Vulcan no menu principal** (`Nav.tsx`), ao lado do nome, em todas as telas internas (login já tinha desde a Etapa 0).
+
+**Segundo usuário de login criado**: `vulcan.prime` / senha `123456` (pra ser trocada depois), via `scripts/criar-usuario.mjs <usuario> <senha>` — usa a API REST do Supabase Auth direto (`/auth/v1/admin/users`) em vez do SDK, porque o SDK do `supabase-js` passou a exigir WebSocket nativo (só existe a partir do Node 22; este VPS roda Node 20).
+
+**Numeração de Entregas resetada pra 001** antes do primeiro deploy de verdade (`alter table entregas alter column numero restart with 1`), já que os números tinham subido bastante só de tanto teste automatizado no dia.
+
+**Deploy em produção (Vercel)** — URL e credenciais de acesso ficam na memória do projeto (fora deste repositório), não neste arquivo.
