@@ -1,6 +1,6 @@
 import { chromium } from "playwright";
 
-const BASE = "http://localhost:3700";
+const BASE = process.env.BASE_URL || "http://localhost:3700";
 const PREVIEWS = "previews";
 let ok = 0;
 let fail = 0;

@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
+import { redirectUrl } from "@/lib/redirect";
 import { createClient } from "@/lib/supabase/server";
 import { formatBRL, round2 } from "@/lib/format";
 
 function erroRedirect(request: Request, numero: string, mensagem: string) {
   return NextResponse.redirect(
-    new URL(`/mesa/${numero}/fechamento?erro=${encodeURIComponent(mensagem)}`, request.url),
+    redirectUrl(`/mesa/${numero}/fechamento?erro=${encodeURIComponent(mensagem)}`, request),
     303
   );
 }
@@ -107,5 +108,5 @@ export async function POST(request: Request) {
 
   await supabase.from("mesas").update({ status: "livre" }).eq("numero", Number(numero));
 
-  return NextResponse.redirect(new URL("/", request.url), 303);
+  return NextResponse.redirect(redirectUrl("/", request), 303);
 }

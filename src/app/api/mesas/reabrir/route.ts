@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { redirectUrl } from "@/lib/redirect";
 import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
@@ -8,5 +9,5 @@ export async function POST(request: Request) {
   const supabase = await createClient();
   await supabase.from("mesas").update({ status: "ocupada" }).eq("numero", Number(numero));
 
-  return NextResponse.redirect(new URL(`/mesa/${numero}`, request.url), 303);
+  return NextResponse.redirect(redirectUrl(`/mesa/${numero}`, request), 303);
 }

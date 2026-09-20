@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { redirectUrl } from "@/lib/redirect";
 import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
@@ -41,5 +42,5 @@ export async function POST(request: Request) {
   }
 
   const query = categoria ? `?categoria=${encodeURIComponent(categoria)}` : "";
-  return NextResponse.redirect(new URL(`/mesa/${numero}${query}`, request.url), 303);
+  return NextResponse.redirect(redirectUrl(`/mesa/${numero}${query}`, request), 303);
 }

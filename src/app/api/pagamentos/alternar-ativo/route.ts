@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { redirectUrl } from "@/lib/redirect";
 import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
@@ -18,7 +19,7 @@ export async function POST(request: Request) {
       const mensagem =
         "Não é possível desativar essa forma de pagamento porque ela é a última ativa. O sistema precisa ter pelo menos uma forma de pagamento disponível pra fechar contas.";
       return NextResponse.redirect(
-        new URL(`/pagamentos?erro=${encodeURIComponent(mensagem)}`, request.url),
+        redirectUrl(`/pagamentos?erro=${encodeURIComponent(mensagem)}`, request),
         303
       );
     }
@@ -26,5 +27,5 @@ export async function POST(request: Request) {
 
   await supabase.from("formas_pagamento").update({ ativo: novoAtivo }).eq("id", id);
 
-  return NextResponse.redirect(new URL("/pagamentos", request.url), 303);
+  return NextResponse.redirect(redirectUrl("/pagamentos", request), 303);
 }

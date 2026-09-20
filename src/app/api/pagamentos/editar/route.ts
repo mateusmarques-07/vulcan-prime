@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { redirectUrl } from "@/lib/redirect";
 import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
@@ -11,5 +12,5 @@ export async function POST(request: Request) {
     await supabase.from("formas_pagamento").update({ nome }).eq("id", id);
   }
 
-  return NextResponse.redirect(new URL("/pagamentos", request.url), 303);
+  return NextResponse.redirect(redirectUrl("/pagamentos", request), 303);
 }
