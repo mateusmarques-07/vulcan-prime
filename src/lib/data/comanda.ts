@@ -12,8 +12,13 @@ export type ItemComanda = {
 export type ProdutoCardapio = {
   id: string;
   nome: string;
-  categoria: string;
   preco: number;
+};
+
+export type CategoriaCardapio = {
+  id: string;
+  nome: string;
+  produtos: ProdutoCardapio[];
 };
 
 export async function getMesaPorNumero(numero: number) {
@@ -49,18 +54,27 @@ export async function getItensComanda(comandaId: string): Promise<ItemComanda[]>
   return data ?? [];
 }
 
-export async function getCardapio(): Promise<Record<string, ProdutoCardapio[]>> {
+export async function getCardapio(): Promise<CategoriaCardapio[]> {
   const supabase = await createClient();
-  const { data } = await supabase
+
+  const { data: categorias } = await supabase
+    .from("categorias")
+    .select("id, nome, ordem")
+    .order("ordem");
+
+  const { data: produtos } = await supabase
     .from("produtos")
-    .select("id, nome, categoria, preco")
+    .select("id, nome, preco, categoria_id")
     .eq("ativo", true)
     .order("ordem");
 
-  const porCategoria: Record<string, ProdutoCardapio[]> = {};
-  for (const produto of data ?? []) {
-    if (!porCategoria[produto.categoria]) porCategoria[produto.categoria] = [];
-    porCategoria[produto.categoria].push(produto);
-  }
-  return porCategoria;
+  return (categorias ?? [])
+    .map((categoria) => ({
+      id: categoria.id,
+      nome: categoria.nome,
+      produtos: (produtos ?? [])
+        .filter((p) => p.categoria_id === categoria.id)
+        .map((p) => ({ id: p.id, nome: p.nome, preco: p.preco })),
+    }))
+    .filter((categoria) => categoria.produtos.length > 0);
 }

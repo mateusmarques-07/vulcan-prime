@@ -2,54 +2,55 @@
 
 import { useState } from "react";
 import { formatBRL } from "@/lib/format";
-import type { ProdutoCardapio } from "@/lib/data/comanda";
+import type { CategoriaCardapio } from "@/lib/data/comanda";
 
-export function CardapioTabs({
+export function CardapioSidebar({
   cardapio,
   comandaId,
   numero,
   categoriaInicial,
 }: {
-  cardapio: Record<string, ProdutoCardapio[]>;
+  cardapio: CategoriaCardapio[];
   comandaId: string;
   numero: number;
   categoriaInicial?: string;
 }) {
-  const categorias = Object.keys(cardapio).sort((a, b) => a.localeCompare(b, "pt-BR"));
-  const [ativa, setAtiva] = useState(
-    categoriaInicial && cardapio[categoriaInicial] ? categoriaInicial : categorias[0] ?? ""
+  const [ativaId, setAtivaId] = useState(
+    cardapio.find((c) => c.id === categoriaInicial)?.id ?? cardapio[0]?.id ?? ""
   );
 
-  if (categorias.length === 0) {
+  if (cardapio.length === 0) {
     return <p className="text-neutral-500">Nenhum produto cadastrado ainda.</p>;
   }
 
+  const categoriaAtiva = cardapio.find((c) => c.id === ativaId) ?? cardapio[0];
+
   return (
-    <div>
-      <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
-        {categorias.map((categoria) => (
+    <div className="flex gap-4">
+      <nav className="flex w-36 shrink-0 flex-col gap-1">
+        {cardapio.map((categoria) => (
           <button
-            key={categoria}
+            key={categoria.id}
             type="button"
-            onClick={() => setAtiva(categoria)}
-            className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition ${
-              ativa === categoria
-                ? "border-orange-500 bg-orange-600 text-white"
-                : "border-neutral-700 text-neutral-300 hover:border-neutral-500"
+            onClick={() => setAtivaId(categoria.id)}
+            className={`rounded-lg px-3 py-2 text-left text-sm font-medium transition ${
+              categoria.id === categoriaAtiva.id
+                ? "bg-orange-600 text-white"
+                : "border border-neutral-800 text-neutral-300 hover:border-neutral-600"
             }`}
           >
-            {categoria}
+            {categoria.nome}
           </button>
         ))}
-      </div>
+      </nav>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {cardapio[ativa]?.map((produto) => (
+      <div className="grid flex-1 grid-cols-2 content-start gap-3 sm:grid-cols-3">
+        {categoriaAtiva.produtos.map((produto) => (
           <form key={produto.id} method="POST" action="/api/itens/lancar">
             <input type="hidden" name="comandaId" value={comandaId} />
             <input type="hidden" name="produtoId" value={produto.id} />
             <input type="hidden" name="numero" value={numero} />
-            <input type="hidden" name="categoria" value={ativa} />
+            <input type="hidden" name="categoria" value={categoriaAtiva.id} />
             <button
               type="submit"
               className="flex w-full flex-col items-start gap-1 rounded-xl border border-neutral-800 bg-neutral-900 p-3 text-left transition hover:border-orange-500"
