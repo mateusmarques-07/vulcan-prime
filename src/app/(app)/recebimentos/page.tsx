@@ -1,15 +1,20 @@
-import { getRecebimentos } from "@/lib/data/recebimentos";
+import { getRecebimentos, type FechamentoResumo } from "@/lib/data/recebimentos";
 import { getFormasPagamentoTodas } from "@/lib/data/pagamentos";
 import { formatBRL } from "@/lib/format";
 import { hojeSaoPauloISO, formatDataHoraSaoPaulo } from "@/lib/timezone";
 import { rotuloMesa } from "@/lib/mesa-label";
 
+function rotuloFechamento(f: FechamentoResumo) {
+  if (f.tipo === "entrega") return `Entrega #${String(f.entregaNumero).padStart(2, "0")}`;
+  return rotuloMesa(f.tipo, f.mesaNumero!);
+}
+
 export default async function RecebimentosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ de?: string; ate?: string; forma?: string }>;
+  searchParams: Promise<{ de?: string; ate?: string; forma?: string; tipo?: string }>;
 }) {
-  const { de, ate, forma } = await searchParams;
+  const { de, ate, forma, tipo } = await searchParams;
 
   const hoje = hojeSaoPauloISO();
   const dataDe = de || hoje;
@@ -24,6 +29,7 @@ export default async function RecebimentosPage({
   ]);
 
   const porFormaFiltrado = forma ? porForma.filter((p) => p.nome === forma) : porForma;
+  const fechamentosFiltrados = tipo ? fechamentos.filter((f) => f.tipo === tipo) : fechamentos;
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -61,6 +67,19 @@ export default async function RecebimentosPage({
                 {f.nome}
               </option>
             ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs text-neutral-400">Tipo</label>
+          <select
+            name="tipo"
+            defaultValue={tipo ?? ""}
+            className="rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-white outline-none focus:border-orange-500"
+          >
+            <option value="">Todos</option>
+            <option value="mesa">Mesa</option>
+            <option value="balcao">Balcão (Retirada)</option>
+            <option value="entrega">Entrega</option>
           </select>
         </div>
         <button
@@ -110,7 +129,7 @@ export default async function RecebimentosPage({
 
       <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
         <h2 className="mb-3 text-sm font-semibold text-neutral-200">Fechamentos individuais</h2>
-        {fechamentos.length === 0 ? (
+        {fechamentosFiltrados.length === 0 ? (
           <p className="text-sm text-neutral-500">Nenhum fechamento no período.</p>
         ) : (
           <div className="overflow-x-auto">
@@ -127,10 +146,10 @@ export default async function RecebimentosPage({
                 </tr>
               </thead>
               <tbody>
-                {fechamentos.map((f) => (
+                {fechamentosFiltrados.map((f) => (
                   <tr key={f.id} className="border-b border-neutral-900 text-neutral-200">
                     <td className="py-2 pr-3">{formatDataHoraSaoPaulo(new Date(f.fechado_em))}</td>
-                    <td className="py-2 pr-3">{rotuloMesa(f.tipoMesa, f.mesa_numero)}</td>
+                    <td className="py-2 pr-3">{rotuloFechamento(f)}</td>
                     <td className="py-2 pr-3">{f.formaTexto}</td>
                     <td className="py-2 pr-3 text-right">{formatBRL(f.subtotal)}</td>
                     <td className="py-2 pr-3 text-right">{formatBRL(f.gorjeta)}</td>
