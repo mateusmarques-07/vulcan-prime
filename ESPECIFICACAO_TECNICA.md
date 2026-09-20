@@ -1230,3 +1230,15 @@ Segunda rodada de testes reais do Mateus achou um bug crítico de fechamento e p
 **Numeração de Entregas resetada pra 001** antes do primeiro deploy de verdade (`alter table entregas alter column numero restart with 1`), já que os números tinham subido bastante só de tanto teste automatizado no dia.
 
 **Deploy em produção (Vercel)** — URL e credenciais de acesso ficam na memória do projeto (fora deste repositório), não neste arquivo.
+
+---
+
+# 42. DEPLOY EM PRODUÇÃO RESOLVIDO (20/09/2026)
+
+Primeira tentativa de subir na Vercel deu 404 em todas as rotas. Diagnóstico inicial (errado): achou que era o Next.js 16.3.5 ainda não suportado pela Vercel — chegou a rebaixar o projeto pra **Next.js 15.5.25** (`proxy.ts` → `middleware.ts`, `eslint.config.mjs` reescrito com `FlatCompat`, `tsconfig.json` com `jsx: "preserve"` — ajuste exigido pelo próprio Next 15) e reconferir os 52 testes automatizados do zero. O 404 **continuou idêntico** mesmo no Next 15, provando que a versão nunca foi a causa.
+
+**Causa real**: o projeto foi criado na Vercel via `vercel project add <nome>` (linha de comando), que **não define o Framework Preset** — sem isso, a Vercel empacota o build como site estático genérico e ignora as rotas dinâmicas do Next.js inteiras, daí o 404 em tudo, até arquivo estático. Corrigido com uma chamada direta na API da Vercel (`PATCH /v9/projects/vulcanprime` com `{"framework": "nextjs"}`). Depois disso o deploy funcionou de primeira — confirmado rodando os 52 testes automatizados direto contra a URL de produção, todos passando.
+
+Mesmo com a causa real identificada como não sendo a versão do Next, o projeto **permanece no Next.js 15.5.25** (não revertido pra 16) — o retest completo já foi feito, e o 15 é mais maduro/comprovado, sem motivo pra voltar.
+
+GitHub conectado ao projeto na Vercel (`vercel git connect`) — todo push na branch `main` a partir de agora dispara deploy automático de produção, sem precisar rodar `vercel deploy` manualmente. Confirmado funcionando (push → build → alias atualizado sozinho).
