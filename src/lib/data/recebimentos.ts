@@ -16,9 +16,7 @@ export async function getRecebimentos(inicio: Date, fim: Date) {
 
   const { data: fechamentos } = await supabase
     .from("fechamentos")
-    .select(
-      "id, mesa_numero, subtotal, gorjeta_valor, gorjeta_forma_pagamento_nome, total, fechado_em"
-    )
+    .select("id, mesa_numero, subtotal, gorjeta_valor, total, fechado_em")
     .gte("fechado_em", inicio.toISOString())
     .lt("fechado_em", fim.toISOString())
     .order("fechado_em", { ascending: false });
@@ -40,17 +38,16 @@ export async function getRecebimentos(inicio: Date, fim: Date) {
     pagamentosPorFechamento.set(pagamento.fechamento_id, lista);
   }
 
+  // Por forma de pagamento so considera o subtotal (itens) - a gorjeta agora
+  // e' sempre um valor a parte, sem forma de pagamento propria (decisao de
+  // 20/09/2026, depois do teste real: nao faz sentido perguntar "gorjeta foi
+  // em qual forma" toda vez).
   const porForma = new Map<string, number>();
   for (const pagamento of pagamentos ?? []) {
-    porForma.set(pagamento.forma_pagamento_nome, round2((porForma.get(pagamento.forma_pagamento_nome) ?? 0) + pagamento.valor));
-  }
-  for (const f of fechamentos ?? []) {
-    if (f.gorjeta_valor > 0 && f.gorjeta_forma_pagamento_nome) {
-      porForma.set(
-        f.gorjeta_forma_pagamento_nome,
-        round2((porForma.get(f.gorjeta_forma_pagamento_nome) ?? 0) + f.gorjeta_valor)
-      );
-    }
+    porForma.set(
+      pagamento.forma_pagamento_nome,
+      round2((porForma.get(pagamento.forma_pagamento_nome) ?? 0) + pagamento.valor)
+    );
   }
 
   const lista: FechamentoResumo[] = (fechamentos ?? []).map((f) => {
@@ -58,8 +55,8 @@ export async function getRecebimentos(inicio: Date, fim: Date) {
       (p) => `${p.nome} R$ ${p.valor.toFixed(2).replace(".", ",")}`
     );
     let formaTexto = partes.join(" + ");
-    if (f.gorjeta_valor > 0 && f.gorjeta_forma_pagamento_nome) {
-      formaTexto += ` (Gorjeta: ${f.gorjeta_forma_pagamento_nome})`;
+    if (f.gorjeta_valor > 0) {
+      formaTexto += ` + Gorjeta R$ ${f.gorjeta_valor.toFixed(2).replace(".", ",")}`;
     }
     return {
       id: f.id,
