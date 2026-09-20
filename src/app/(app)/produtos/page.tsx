@@ -72,7 +72,7 @@ export default async function ProdutosPage() {
                         type="number"
                         step="0.01"
                         name="preco"
-                        defaultValue={produto.preco}
+                        defaultValue={produto.preco.toFixed(2)}
                         className="w-24 rounded-lg border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-white outline-none focus:border-orange-500"
                       />
                       <input
@@ -140,13 +140,6 @@ export default async function ProdutosPage() {
             placeholder="Preço"
             required
             className="w-24 rounded-lg border border-neutral-700 bg-neutral-800 px-2 py-2 text-white outline-none focus:border-orange-500"
-          />
-          <input
-            type="number"
-            name="ordem"
-            placeholder="Ordem"
-            defaultValue={0}
-            className="w-20 rounded-lg border border-neutral-700 bg-neutral-800 px-2 py-2 text-center text-white outline-none focus:border-orange-500"
           />
           <button
             type="submit"
