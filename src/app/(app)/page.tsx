@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { getSalaoData } from "@/lib/data/salao";
 import { formatBRL } from "@/lib/format";
-import { logout } from "@/app/login/actions";
 
 const ESTILO_STATUS = {
   livre: "border-neutral-800 bg-neutral-900 text-neutral-400 hover:border-neutral-600",
@@ -19,19 +18,7 @@ export default async function SalaoPage() {
   const { mesas, resumo } = await getSalaoData();
 
   return (
-    <div className="min-h-screen px-4 py-6 sm:px-8">
-      <header className="mx-auto mb-8 flex max-w-5xl items-center justify-between">
-        <h1 className="text-xl font-black tracking-tight text-orange-500">VULCAN PRIME</h1>
-        <form action={logout}>
-          <button
-            type="submit"
-            className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 transition hover:border-orange-500 hover:text-orange-500"
-          >
-            Sair
-          </button>
-        </form>
-      </header>
-
+    <div>
       <div className="mx-auto mb-8 grid max-w-5xl grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
           <p className="text-sm text-neutral-400">Mesas ocupadas</p>
@@ -75,8 +62,11 @@ export default async function SalaoPage() {
             );
           }
 
+          const destino =
+            mesa.status === "conta" ? `/mesa/${mesa.numero}/fechamento` : `/mesa/${mesa.numero}`;
+
           return (
-            <Link key={mesa.id} href={`/mesa/${mesa.numero}`} className={classe}>
+            <Link key={mesa.id} href={destino} className={classe}>
               {conteudo}
             </Link>
           );
