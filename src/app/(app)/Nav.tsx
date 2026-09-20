@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -17,7 +18,10 @@ export function Nav({ logout }: { logout: (formData: FormData) => void }) {
     <header className="border-b border-neutral-800 bg-neutral-950">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-8">
         <div className="flex items-center gap-8">
-          <span className="text-lg font-black tracking-tight text-orange-500">VULCAN PRIME</span>
+          <Link href="/" className="flex items-center gap-2">
+            <Image src="/logo.png" alt="Vulcan Prime" width={36} height={36} className="rounded-full" />
+            <span className="text-lg font-black tracking-tight text-orange-500">VULCAN PRIME</span>
+          </Link>
           <nav className="flex gap-1">
             {LINKS.map((link) => {
               const ativo = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
