@@ -14,3 +14,23 @@ export function inicioFimHojeSaoPaulo() {
   const fim = new Date(inicio.getTime() + 24 * 60 * 60 * 1000);
   return { inicio, fim };
 }
+
+export function hojeSaoPauloISO() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
+export function formatDataHoraSaoPaulo(data: Date) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: TZ,
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(data);
+}

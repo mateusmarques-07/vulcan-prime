@@ -7,7 +7,7 @@ import {
   getCardapio,
 } from "@/lib/data/comanda";
 import { formatBRL } from "@/lib/format";
-import { CardapioTabs } from "./CardapioTabs";
+import { CardapioSidebar } from "./CardapioSidebar";
 
 export default async function ComandaPage({
   params,
@@ -23,6 +23,7 @@ export default async function ComandaPage({
   const mesa = await getMesaPorNumero(numero);
   if (!mesa) notFound();
   if (mesa.status === "livre") redirect("/");
+  if (mesa.status === "conta") redirect(`/mesa/${numero}/fechamento`);
 
   const comanda = await getComandaAbertaDaMesa(mesa.id);
   if (!comanda) redirect("/");
@@ -36,7 +37,7 @@ export default async function ComandaPage({
   const numeroFormatado = String(mesa.numero).padStart(2, "0");
 
   return (
-    <div className="min-h-screen px-4 py-6 sm:px-8">
+    <div>
       <header className="mx-auto mb-6 flex max-w-5xl items-center justify-between">
         <div>
           <Link href="/" className="text-sm text-neutral-400 hover:text-orange-500">
@@ -46,12 +47,22 @@ export default async function ComandaPage({
             Mesa {numeroFormatado} - {formatBRL(total)}
           </h1>
         </div>
+        <form method="POST" action="/api/mesas/fechar-conta">
+          <input type="hidden" name="numero" value={mesa.numero} />
+          <button
+            type="submit"
+            disabled={itens.length === 0}
+            className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-500 disabled:cursor-not-allowed disabled:bg-neutral-800 disabled:text-neutral-500"
+          >
+            Fechar conta
+          </button>
+        </form>
       </header>
 
       <div className="mx-auto grid max-w-5xl gap-8 md:grid-cols-2">
         <section>
           <h2 className="mb-3 text-lg font-semibold text-neutral-200">Cardápio</h2>
-          <CardapioTabs
+          <CardapioSidebar
             cardapio={cardapio}
             comandaId={comanda.id}
             numero={mesa.numero}
