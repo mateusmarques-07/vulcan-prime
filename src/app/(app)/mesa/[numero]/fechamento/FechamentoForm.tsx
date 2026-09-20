@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { formatBRL, formatarInputMoeda, round2 } from "@/lib/format";
 import type { ItemComanda } from "@/lib/data/comanda";
 import type { FormaPagamento } from "@/lib/data/pagamentos";
-import type { TipoMesa } from "@/lib/mesa-label";
 
 export function FechamentoForm({
   numero,
@@ -12,22 +11,18 @@ export function FechamentoForm({
   itens,
   subtotal,
   formas,
-  tipo,
   gorjetaAtivaInicial,
   gorjetaPctInicial,
   pessoasInicial,
-  taxaEntregaInicial,
 }: {
   numero: number;
   comandaId: string;
   itens: ItemComanda[];
   subtotal: number;
   formas: FormaPagamento[];
-  tipo: TipoMesa;
   gorjetaAtivaInicial: boolean;
   gorjetaPctInicial: number;
   pessoasInicial: number | null;
-  taxaEntregaInicial: number;
 }) {
   const opcaoInicial =
     gorjetaPctInicial === 10 || gorjetaPctInicial === 15 ? String(gorjetaPctInicial) : "outra";
@@ -40,9 +35,6 @@ export function FechamentoForm({
     opcaoInicial === "outra" ? String(gorjetaPctInicial) : ""
   );
   const [pessoas, setPessoas] = useState(pessoasInicial ? String(pessoasInicial) : "");
-  const [taxaEntrega, setTaxaEntrega] = useState(
-    tipo === "entrega" && taxaEntregaInicial ? taxaEntregaInicial.toFixed(2) : ""
-  );
   const [valores, setValores] = useState<Record<string, string>>({});
 
   const gorjetaPct = gorjetaAtiva
@@ -51,8 +43,7 @@ export function FechamentoForm({
       : Number(gorjetaOpcao)
     : 0;
   const gorjetaValor = round2((subtotal * gorjetaPct) / 100);
-  const taxaEntregaValor = round2(Number(taxaEntrega.replace(",", ".")) || 0);
-  const total = round2(subtotal + gorjetaValor + taxaEntregaValor);
+  const total = round2(subtotal + gorjetaValor);
 
   const somaFormas = round2(
     Object.values(valores).reduce((soma, v) => soma + (Number(v.replace(",", ".")) || 0), 0)
@@ -64,9 +55,9 @@ export function FechamentoForm({
 
   const podeConfirmar = Math.abs(faltaCobrir) < 0.005;
 
-  // Salva gorjeta/pessoas/taxa de entrega automaticamente (com um pequeno
-  // atraso) assim que algum desses campos muda - nao depende de clicar em
-  // nenhum botao especifico pra sobreviver a espera do garcom/entregador.
+  // Salva gorjeta/pessoas automaticamente (com um pequeno atraso) assim que
+  // algum desses campos muda - nao depende de clicar em nenhum botao
+  // especifico pra sobreviver a espera do garcom voltar com o pagamento.
   const primeiraRenderizacao = useRef(true);
   useEffect(() => {
     if (primeiraRenderizacao.current) {
@@ -79,12 +70,11 @@ export function FechamentoForm({
         gorjetaAtiva: String(gorjetaAtiva),
         gorjetaPct: String(gorjetaPct),
         pessoas,
-        taxaEntrega: taxaEntrega || "0",
       });
       fetch("/api/mesas/salvar-parcial", { method: "POST", body }).catch(() => {});
     }, 500);
     return () => clearTimeout(timer);
-  }, [numero, gorjetaAtiva, gorjetaPct, pessoas, taxaEntrega]);
+  }, [numero, gorjetaAtiva, gorjetaPct, pessoas]);
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -123,22 +113,6 @@ export function FechamentoForm({
           </p>
         )}
       </div>
-
-      {tipo === "entrega" && (
-        <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
-          <label className="block text-sm font-medium text-neutral-300">Taxa de entrega</label>
-          <input
-            type="number"
-            step="0.01"
-            min="0"
-            value={taxaEntrega}
-            onChange={(e) => setTaxaEntrega(e.target.value)}
-            onBlur={() => setTaxaEntrega((v) => formatarInputMoeda(v))}
-            placeholder="R$ 0,00"
-            className="mt-2 w-32 rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-white outline-none focus:border-orange-500"
-          />
-        </div>
-      )}
 
       <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
         <label className="flex items-center gap-2 text-sm font-medium text-neutral-200">
@@ -198,12 +172,6 @@ export function FechamentoForm({
               <span>{formatBRL(gorjetaValor)}</span>
             </div>
           )}
-          {tipo === "entrega" && taxaEntregaValor > 0 && (
-            <div className="flex justify-between text-sm text-neutral-400">
-              <span>Taxa de entrega</span>
-              <span>{formatBRL(taxaEntregaValor)}</span>
-            </div>
-          )}
           <div className="flex justify-between text-lg font-bold text-white">
             <span>Total</span>
             <span>{formatBRL(total)}</span>
@@ -215,7 +183,6 @@ export function FechamentoForm({
           <input type="hidden" name="gorjetaAtiva" value={gorjetaAtiva.toString()} />
           <input type="hidden" name="gorjetaPct" value={gorjetaPct} />
           <input type="hidden" name="pessoas" value={pessoas} />
-          <input type="hidden" name="taxaEntrega" value={taxaEntregaValor} />
           <button
             type="submit"
             className="inline-block rounded-lg border border-neutral-700 px-4 py-2 text-sm text-neutral-200 transition hover:border-orange-500 hover:text-orange-500"
@@ -264,7 +231,6 @@ export function FechamentoForm({
           <input type="hidden" name="comandaId" value={comandaId} />
           <input type="hidden" name="gorjetaPct" value={gorjetaPct} />
           <input type="hidden" name="pessoas" value={pessoas} />
-          <input type="hidden" name="taxaEntrega" value={taxaEntregaValor} />
           {formas.map((forma) => (
             <input
               key={forma.id}

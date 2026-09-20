@@ -10,14 +10,10 @@ export default async function ReciboPage({
   searchParams,
 }: {
   params: Promise<{ numero: string }>;
-  searchParams: Promise<{ gorjetaPct?: string; pessoas?: string; taxaEntrega?: string }>;
+  searchParams: Promise<{ gorjetaPct?: string; pessoas?: string }>;
 }) {
   const { numero: numeroParam } = await params;
-  const {
-    gorjetaPct: gorjetaPctParam,
-    pessoas: pessoasParam,
-    taxaEntrega: taxaEntregaParam,
-  } = await searchParams;
+  const { gorjetaPct: gorjetaPctParam, pessoas: pessoasParam } = await searchParams;
   const numero = Number(numeroParam);
 
   const mesa = await getMesaPorNumero(numero);
@@ -31,8 +27,7 @@ export default async function ReciboPage({
 
   const gorjetaPct = Number(gorjetaPctParam) || 0;
   const gorjetaValor = round2((subtotal * gorjetaPct) / 100);
-  const taxaEntrega = round2(Number(taxaEntregaParam) || 0);
-  const total = round2(subtotal + gorjetaValor + taxaEntrega);
+  const total = round2(subtotal + gorjetaValor);
 
   const pessoas = Number(pessoasParam) || 0;
   const valorPorPessoa = pessoas > 0 ? total / pessoas : null;
@@ -78,13 +73,6 @@ export default async function ReciboPage({
         <div className="flex justify-between">
           <span>Taxa de serviço ({gorjetaPct}%)</span>
           <span>{formatBRL(gorjetaValor)}</span>
-        </div>
-      )}
-
-      {taxaEntrega > 0 && (
-        <div className="flex justify-between">
-          <span>Taxa de entrega</span>
-          <span>{formatBRL(taxaEntrega)}</span>
         </div>
       )}
 

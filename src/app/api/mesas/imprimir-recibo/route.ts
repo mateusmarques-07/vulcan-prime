@@ -2,10 +2,9 @@ import { NextResponse } from "next/server";
 import { redirectUrl } from "@/lib/redirect";
 import { createClient } from "@/lib/supabase/server";
 
-// Alem de abrir o recibo, salva a gorjeta/pessoas/taxa de entrega escolhidas
-// na mesa - assim, se o garcom/entregador demorar pra voltar com o
-// pagamento e o operador sair e voltar pra essa tela, a escolha continua
-// la (nao precisa refazer tudo).
+// Alem de abrir o recibo, salva a gorjeta/pessoas escolhidas na mesa -
+// assim, se o garcom demorar pra voltar com o pagamento e o operador sair e
+// voltar pra essa tela, a escolha continua la (nao precisa refazer tudo).
 export async function POST(request: Request) {
   const formData = await request.formData();
   const numero = String(formData.get("numero"));
@@ -13,7 +12,6 @@ export async function POST(request: Request) {
   const gorjetaPct = Number(formData.get("gorjetaPct")) || 0;
   const pessoasRaw = String(formData.get("pessoas") || "");
   const qtdPessoas = pessoasRaw ? Number(pessoasRaw) : null;
-  const taxaEntrega = Number(formData.get("taxaEntrega")) || 0;
 
   const supabase = await createClient();
   await supabase
@@ -22,14 +20,12 @@ export async function POST(request: Request) {
       gorjeta_ativa: gorjetaAtiva,
       gorjeta_pct: gorjetaPct,
       qtd_pessoas: qtdPessoas,
-      taxa_entrega: taxaEntrega,
     })
     .eq("numero", Number(numero));
 
   const params = new URLSearchParams({
     gorjetaPct: String(gorjetaPct),
     pessoas: pessoasRaw,
-    taxaEntrega: String(taxaEntrega),
   });
 
   return NextResponse.redirect(redirectUrl(`/recibo/${numero}?${params}`, request), 303);

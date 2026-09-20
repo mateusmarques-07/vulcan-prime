@@ -16,7 +16,7 @@ export async function getSalaoData() {
 
   const { data: mesas } = await supabase
     .from("mesas")
-    .select("id, numero, status, tipo, gorjeta_ativa, gorjeta_pct, taxa_entrega")
+    .select("id, numero, status, tipo, gorjeta_ativa, gorjeta_pct")
     .order("numero");
 
   const { data: comandasAbertas } = await supabase
@@ -67,8 +67,7 @@ export async function getSalaoData() {
     }
     const subtotal = subtotalPorMesa.get(mesa.id) ?? 0;
     const gorjeta = mesa.gorjeta_ativa ? round2((subtotal * mesa.gorjeta_pct) / 100) : 0;
-    const taxaEntrega = subtotal > 0 ? (mesa.taxa_entrega ?? 0) : 0;
-    return { ...mesa, total: round2(subtotal + gorjeta + taxaEntrega) };
+    return { ...mesa, total: round2(subtotal + gorjeta) };
   });
 
   const ocupadas = mesasComTotal.filter((m) => m.status !== "livre").length;

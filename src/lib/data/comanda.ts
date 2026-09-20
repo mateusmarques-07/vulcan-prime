@@ -25,7 +25,7 @@ export async function getMesaPorNumero(numero: number) {
   const supabase = await createClient();
   const { data } = await supabase
     .from("mesas")
-    .select("id, numero, status, tipo, gorjeta_ativa, gorjeta_pct, qtd_pessoas, taxa_entrega")
+    .select("id, numero, status, tipo, gorjeta_ativa, gorjeta_pct, qtd_pessoas")
     .eq("numero", numero)
     .single();
   return data;
