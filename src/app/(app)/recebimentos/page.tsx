@@ -24,12 +24,9 @@ export default async function RecebimentosPage({
   const fimExclusivo = new Date(new Date(`${dataAte}T00:00:00-03:00`).getTime() + 24 * 60 * 60 * 1000);
 
   const [{ resumo, porForma, fechamentos }, formasPagamento] = await Promise.all([
-    getRecebimentos(inicio, fimExclusivo),
+    getRecebimentos(inicio, fimExclusivo, { forma, tipo }),
     getFormasPagamentoTodas(),
   ]);
-
-  const porFormaFiltrado = forma ? porForma.filter((p) => p.nome === forma) : porForma;
-  const fechamentosFiltrados = tipo ? fechamentos.filter((f) => f.tipo === tipo) : fechamentos;
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -96,7 +93,7 @@ export default async function RecebimentosPage({
         </a>
       </form>
 
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
           <p className="text-sm text-neutral-400">Subtotal vendido</p>
           <p className="text-2xl font-bold text-white">{formatBRL(resumo.subtotalVendido)}</p>
@@ -106,6 +103,10 @@ export default async function RecebimentosPage({
           <p className="text-2xl font-bold text-white">{formatBRL(resumo.gorjetas)}</p>
         </div>
         <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
+          <p className="text-sm text-neutral-400">Taxa de entrega</p>
+          <p className="text-2xl font-bold text-white">{formatBRL(resumo.taxaEntrega)}</p>
+        </div>
+        <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
           <p className="text-sm text-neutral-400">Total recebido</p>
           <p className="text-2xl font-bold text-white">{formatBRL(resumo.totalRecebido)}</p>
         </div>
@@ -113,11 +114,11 @@ export default async function RecebimentosPage({
 
       <div className="mb-6 rounded-xl border border-neutral-800 bg-neutral-900 p-4">
         <h2 className="mb-3 text-sm font-semibold text-neutral-200">Por forma de pagamento</h2>
-        {porFormaFiltrado.length === 0 ? (
+        {porForma.length === 0 ? (
           <p className="text-sm text-neutral-500">Nenhum recebimento no período.</p>
         ) : (
           <ul className="space-y-1">
-            {porFormaFiltrado.map((p) => (
+            {porForma.map((p) => (
               <li key={p.nome} className="flex justify-between text-sm text-neutral-200">
                 <span>{p.nome}</span>
                 <span>{formatBRL(p.valor)}</span>
@@ -129,7 +130,7 @@ export default async function RecebimentosPage({
 
       <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
         <h2 className="mb-3 text-sm font-semibold text-neutral-200">Fechamentos individuais</h2>
-        {fechamentosFiltrados.length === 0 ? (
+        {fechamentos.length === 0 ? (
           <p className="text-sm text-neutral-500">Nenhum fechamento no período.</p>
         ) : (
           <div className="overflow-x-auto">
@@ -146,7 +147,7 @@ export default async function RecebimentosPage({
                 </tr>
               </thead>
               <tbody>
-                {fechamentosFiltrados.map((f) => (
+                {fechamentos.map((f) => (
                   <tr key={f.id} className="border-b border-neutral-900 text-neutral-200">
                     <td className="py-2 pr-3">{formatDataHoraSaoPaulo(new Date(f.fechado_em))}</td>
                     <td className="py-2 pr-3">{rotuloFechamento(f)}</td>
