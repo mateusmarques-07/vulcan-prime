@@ -1126,3 +1126,16 @@ Casos que já usam esse padrão:
 * Desativar a última forma de pagamento ativa (seção 17).
 
 Implementação: a Route Handler que faz a checagem redireciona de volta pra mesma tela com `?erro=<mensagem>` na URL; a página lê esse parâmetro e renderiza um modal simples (componente `ErrorModal`, reaproveitável) com a mensagem e um botão "Entendi" que fecha o popup (navegando pra mesma URL sem o parâmetro). Qualquer bloqueio novo que o sistema precisar no futuro deve seguir esse mesmo padrão.
+
+---
+
+# 37. NOTA TÉCNICA: ACESSO PELO IP DO VPS EM DEV
+
+**Descoberta em 19-20/09/2026**, testando com o Mateus acessando `http://187.77.55.239:3700` em vez de `http://localhost:3700` (acontece quando o encaminhamento de porta do VSCode cai ou ele testa direto pelo IP).
+
+Dois bugs do Next.js em modo dev, não deste projeto especificamente:
+
+1. **JavaScript da página inteira parava de funcionar** (abas de categoria "não saíam do lugar"). Causa: o Next.js dev bloqueia por padrão recursos internos (HMR) quando o `Host` do request é diferente de `localhost`. Fix: `allowedDevOrigins: ["187.77.55.239"]` em `next.config.ts`.
+2. **Login caía sozinho no meio do uso** — mais grave. Dentro das Route Handlers, `new URL(caminho, request.url)` às vezes normalizava o host pra `localhost`, fazendo o navegador seguir o redirect pra uma origem diferente de onde a sessão foi criada — perde o cookie, cai no login. Fix: `src/lib/redirect.ts` monta a URL de redirect a partir do header `Host` da requisição (reflete o host real usado), nunca de `request.url`. Aplicado nas 18 Route Handlers do sistema.
+
+`scripts/teste-via-ip.mjs` testa esse cenário especificamente. `scripts/revisao-etapa9.mjs` aceita `BASE_URL` como variável de ambiente pra rodar a suíte inteira contra qualquer host — os 29 testes passam tanto via `localhost` quanto via IP.
