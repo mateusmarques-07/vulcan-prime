@@ -24,5 +24,5 @@ export async function POST(request: Request) {
     await supabase.from("entregas").update({ status }).eq("numero", Number(numero));
   }
 
-  return NextResponse.redirect(redirectUrl(`/entregas/${numero}`, request), 303);
+  return NextResponse.redirect(redirectUrl(`/entregas?numero=${numero}`, request), 303);
 }

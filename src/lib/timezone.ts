@@ -24,6 +24,14 @@ export function hojeSaoPauloISO() {
   }).format(new Date());
 }
 
+export function formatHoraSaoPaulo(data: Date) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: TZ,
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(data);
+}
+
 export function formatDataHoraSaoPaulo(data: Date) {
   return new Intl.DateTimeFormat("pt-BR", {
     timeZone: TZ,

@@ -29,5 +29,5 @@ export async function POST(request: Request) {
     .eq("numero", Number(numero))
     .neq("status", "finalizada");
 
-  return NextResponse.redirect(redirectUrl(`/entregas/${numero}`, request), 303);
+  return NextResponse.redirect(redirectUrl(`/entregas?numero=${numero}`, request), 303);
 }

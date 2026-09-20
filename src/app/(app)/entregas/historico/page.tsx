@@ -33,7 +33,7 @@ export default async function HistoricoEntregasPage() {
               {historico.map((e) => (
                 <tr key={e.id} className="border-b border-neutral-900 text-neutral-200">
                   <td className="py-2 pr-3">
-                    <Link href={`/entregas/${e.numero}`} className="hover:text-orange-500">
+                    <Link href={`/entregas?numero=${e.numero}`} className="hover:text-orange-500">
                       #{String(e.numero).padStart(2, "0")}
                     </Link>
                   </td>

@@ -7,8 +7,9 @@ export type EntregaResumo = {
   numero: number;
   cliente_nome: string;
   endereco: string;
-  status: StatusEntrega;
+  status: Exclude<StatusEntrega, "finalizada">;
   total: number;
+  aberta_em: string;
 };
 
 export type ItemEntrega = {
@@ -50,7 +51,7 @@ export async function getEntregasAtivas(): Promise<EntregaResumo[]> {
 
   const { data: entregas } = await supabase
     .from("entregas")
-    .select("id, numero, cliente_nome, endereco, status, taxa_entrega")
+    .select("id, numero, cliente_nome, endereco, status, taxa_entrega, aberta_em")
     .neq("status", "finalizada")
     .order("numero");
 
@@ -77,6 +78,7 @@ export async function getEntregasAtivas(): Promise<EntregaResumo[]> {
     endereco: e.endereco,
     status: e.status,
     total: (subtotalPorEntrega.get(e.id) ?? 0) + e.taxa_entrega,
+    aberta_em: e.aberta_em,
   }));
 }
 
