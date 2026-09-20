@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { getMesaPorNumero, getComandaAbertaDaMesa, getItensComanda } from "@/lib/data/comanda";
 import { getFormasPagamentoAtivas } from "@/lib/data/pagamentos";
 import { ErrorModal } from "@/components/ErrorModal";
+import { rotuloMesa } from "@/lib/mesa-label";
 import { FechamentoForm } from "./FechamentoForm";
 
 export default async function FechamentoPage({
@@ -30,7 +31,7 @@ export default async function FechamentoPage({
   ]);
 
   const subtotal = itens.reduce((soma, item) => soma + item.preco_unit * item.quantidade, 0);
-  const numeroFormatado = String(mesa.numero).padStart(2, "0");
+  const rotulo = rotuloMesa(mesa.tipo, mesa.numero);
 
   return (
     <div>
@@ -38,7 +39,7 @@ export default async function FechamentoPage({
         <Link href={`/mesa/${numero}`} className="text-sm text-neutral-400 hover:text-orange-500">
           ← Voltar pra comanda
         </Link>
-        <h1 className="text-2xl font-bold text-white">Fechar Mesa {numeroFormatado}</h1>
+        <h1 className="text-2xl font-bold text-white">Fechar {rotulo}</h1>
       </header>
 
       <FechamentoForm
@@ -47,9 +48,11 @@ export default async function FechamentoPage({
         itens={itens}
         subtotal={subtotal}
         formas={formas}
+        tipo={mesa.tipo}
         gorjetaAtivaInicial={mesa.gorjeta_ativa}
         gorjetaPctInicial={mesa.gorjeta_pct}
         pessoasInicial={mesa.qtd_pessoas}
+        taxaEntregaInicial={mesa.taxa_entrega}
       />
 
       <ErrorModal mensagem={erro} voltarHref={`/mesa/${numero}/fechamento`} />

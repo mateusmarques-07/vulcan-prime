@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getMesaPorNumero, getComandaAbertaDaMesa, getItensComanda } from "@/lib/data/comanda";
 import { formatBRL, round2 } from "@/lib/format";
 import { formatDataHoraSaoPaulo } from "@/lib/timezone";
+import { rotuloMesa } from "@/lib/mesa-label";
 import { AutoPrint } from "./AutoPrint";
 
 export default async function ReciboPage({
@@ -9,10 +10,14 @@ export default async function ReciboPage({
   searchParams,
 }: {
   params: Promise<{ numero: string }>;
-  searchParams: Promise<{ gorjetaPct?: string; pessoas?: string }>;
+  searchParams: Promise<{ gorjetaPct?: string; pessoas?: string; taxaEntrega?: string }>;
 }) {
   const { numero: numeroParam } = await params;
-  const { gorjetaPct: gorjetaPctParam, pessoas: pessoasParam } = await searchParams;
+  const {
+    gorjetaPct: gorjetaPctParam,
+    pessoas: pessoasParam,
+    taxaEntrega: taxaEntregaParam,
+  } = await searchParams;
   const numero = Number(numeroParam);
 
   const mesa = await getMesaPorNumero(numero);
@@ -26,12 +31,13 @@ export default async function ReciboPage({
 
   const gorjetaPct = Number(gorjetaPctParam) || 0;
   const gorjetaValor = round2((subtotal * gorjetaPct) / 100);
-  const total = round2(subtotal + gorjetaValor);
+  const taxaEntrega = round2(Number(taxaEntregaParam) || 0);
+  const total = round2(subtotal + gorjetaValor + taxaEntrega);
 
   const pessoas = Number(pessoasParam) || 0;
   const valorPorPessoa = pessoas > 0 ? total / pessoas : null;
 
-  const numeroFormatado = String(mesa.numero).padStart(2, "0");
+  const rotulo = rotuloMesa(mesa.tipo, mesa.numero);
 
   return (
     <div className="mx-auto w-[80mm] bg-white p-2 font-mono text-xs text-black print:w-full">
@@ -46,7 +52,7 @@ export default async function ReciboPage({
 
       <div className="text-center">
         <p className="text-sm font-bold">VULCAN PRIME</p>
-        <p>Mesa {numeroFormatado}</p>
+        <p>{rotulo}</p>
         <p>{formatDataHoraSaoPaulo(new Date())}</p>
       </div>
 
@@ -72,6 +78,13 @@ export default async function ReciboPage({
         <div className="flex justify-between">
           <span>Taxa de serviço ({gorjetaPct}%)</span>
           <span>{formatBRL(gorjetaValor)}</span>
+        </div>
+      )}
+
+      {taxaEntrega > 0 && (
+        <div className="flex justify-between">
+          <span>Taxa de entrega</span>
+          <span>{formatBRL(taxaEntrega)}</span>
         </div>
       )}
 

@@ -7,6 +7,7 @@ import {
   getCardapio,
 } from "@/lib/data/comanda";
 import { formatBRL } from "@/lib/format";
+import { rotuloMesa } from "@/lib/mesa-label";
 import { CardapioSidebar } from "./CardapioSidebar";
 
 export default async function ComandaPage({
@@ -33,7 +34,7 @@ export default async function ComandaPage({
   const itens = await getItensComanda(comanda.id);
 
   const total = itens.reduce((soma, item) => soma + item.preco_unit * item.quantidade, 0);
-  const numeroFormatado = String(mesa.numero).padStart(2, "0");
+  const rotulo = rotuloMesa(mesa.tipo, mesa.numero);
 
   return (
     <div>
@@ -43,7 +44,7 @@ export default async function ComandaPage({
             ← Salão
           </Link>
           <h1 className="text-2xl font-bold text-white">
-            Mesa {numeroFormatado} - {formatBRL(total)}
+            {rotulo} - {formatBRL(total)}
           </h1>
         </div>
         <form method="POST" action="/api/mesas/fechar-conta">

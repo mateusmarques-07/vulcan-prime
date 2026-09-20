@@ -1,10 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { inicioFimHojeSaoPaulo } from "@/lib/timezone";
+import { round2 } from "@/lib/format";
+import type { TipoMesa } from "@/lib/mesa-label";
 
 export type MesaComTotal = {
   id: string;
   numero: number;
   status: "livre" | "ocupada" | "conta";
+  tipo: TipoMesa;
   total: number;
 };
 
@@ -13,7 +16,7 @@ export async function getSalaoData() {
 
   const { data: mesas } = await supabase
     .from("mesas")
-    .select("id, numero, status")
+    .select("id, numero, status, tipo, gorjeta_ativa, gorjeta_pct, taxa_entrega")
     .order("numero");
 
   const { data: comandasAbertas } = await supabase
@@ -53,16 +56,20 @@ export async function getSalaoData() {
   }
   const mesaIdsLiberadas = new Set(comandasVazias.map((c) => c.mesa_id));
 
-  const totalPorMesa = new Map<string, number>();
+  const subtotalPorMesa = new Map<string, number>();
   for (const comanda of comandasAbertas ?? []) {
-    totalPorMesa.set(comanda.mesa_id, totalPorComanda.get(comanda.id) ?? 0);
+    subtotalPorMesa.set(comanda.mesa_id, totalPorComanda.get(comanda.id) ?? 0);
   }
 
-  const mesasComTotal: MesaComTotal[] = (mesas ?? []).map((mesa) => ({
-    ...mesa,
-    status: mesaIdsLiberadas.has(mesa.id) ? "livre" : mesa.status,
-    total: mesaIdsLiberadas.has(mesa.id) ? 0 : (totalPorMesa.get(mesa.id) ?? 0),
-  }));
+  const mesasComTotal: MesaComTotal[] = (mesas ?? []).map((mesa) => {
+    if (mesaIdsLiberadas.has(mesa.id)) {
+      return { ...mesa, status: "livre" as const, total: 0 };
+    }
+    const subtotal = subtotalPorMesa.get(mesa.id) ?? 0;
+    const gorjeta = mesa.gorjeta_ativa ? round2((subtotal * mesa.gorjeta_pct) / 100) : 0;
+    const taxaEntrega = subtotal > 0 ? (mesa.taxa_entrega ?? 0) : 0;
+    return { ...mesa, total: round2(subtotal + gorjeta + taxaEntrega) };
+  });
 
   const ocupadas = mesasComTotal.filter((m) => m.status !== "livre").length;
   const emAberto = mesasComTotal.reduce((soma, m) => soma + m.total, 0);

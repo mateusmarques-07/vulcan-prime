@@ -2,6 +2,7 @@ import { getRecebimentos } from "@/lib/data/recebimentos";
 import { getFormasPagamentoTodas } from "@/lib/data/pagamentos";
 import { formatBRL } from "@/lib/format";
 import { hojeSaoPauloISO, formatDataHoraSaoPaulo } from "@/lib/timezone";
+import { rotuloMesa } from "@/lib/mesa-label";
 
 export default async function RecebimentosPage({
   searchParams,
@@ -121,6 +122,7 @@ export default async function RecebimentosPage({
                   <th className="py-2 pr-3">Forma de pagamento</th>
                   <th className="py-2 pr-3 text-right">Subtotal</th>
                   <th className="py-2 pr-3 text-right">Gorjeta</th>
+                  <th className="py-2 pr-3 text-right">Entrega</th>
                   <th className="py-2 text-right">Total</th>
                 </tr>
               </thead>
@@ -128,10 +130,13 @@ export default async function RecebimentosPage({
                 {fechamentos.map((f) => (
                   <tr key={f.id} className="border-b border-neutral-900 text-neutral-200">
                     <td className="py-2 pr-3">{formatDataHoraSaoPaulo(new Date(f.fechado_em))}</td>
-                    <td className="py-2 pr-3">Mesa {String(f.mesa_numero).padStart(2, "0")}</td>
+                    <td className="py-2 pr-3">{rotuloMesa(f.tipoMesa, f.mesa_numero)}</td>
                     <td className="py-2 pr-3">{f.formaTexto}</td>
                     <td className="py-2 pr-3 text-right">{formatBRL(f.subtotal)}</td>
                     <td className="py-2 pr-3 text-right">{formatBRL(f.gorjeta)}</td>
+                    <td className="py-2 pr-3 text-right">
+                      {f.taxaEntrega > 0 ? formatBRL(f.taxaEntrega) : "—"}
+                    </td>
                     <td className="py-2 text-right font-semibold">{formatBRL(f.total)}</td>
                   </tr>
                 ))}

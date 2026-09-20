@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getProdutosAdmin } from "@/lib/data/produtos";
 import { getCategoriasParaSelect } from "@/lib/data/categorias";
+import { MoneyInput } from "@/components/MoneyInput";
 
 export default async function ProdutosPage() {
   const [produtos, categorias] = await Promise.all([
@@ -68,9 +69,7 @@ export default async function ProdutosPage() {
                           </option>
                         ))}
                       </select>
-                      <input
-                        type="number"
-                        step="0.01"
+                      <MoneyInput
                         name="preco"
                         defaultValue={produto.preco.toFixed(2)}
                         className="w-24 rounded-lg border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-white outline-none focus:border-orange-500"
@@ -133,9 +132,7 @@ export default async function ProdutosPage() {
               </option>
             ))}
           </select>
-          <input
-            type="number"
-            step="0.01"
+          <MoneyInput
             name="preco"
             placeholder="Preço"
             required

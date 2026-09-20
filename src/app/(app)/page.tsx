@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getSalaoData } from "@/lib/data/salao";
 import { formatBRL } from "@/lib/format";
+import { rotuloMesa } from "@/lib/mesa-label";
 
 const ESTILO_STATUS = {
   livre: "border-green-700 bg-green-950/30 text-green-100 hover:border-green-500",
@@ -38,12 +39,11 @@ export default async function SalaoPage() {
 
       <div className="mx-auto grid max-w-5xl grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
         {mesas.map((mesa) => {
-          const numeroFormatado = String(mesa.numero).padStart(2, "0");
           const classe = `flex aspect-square flex-col items-center justify-center gap-1 rounded-2xl border-2 text-center transition ${ESTILO_STATUS[mesa.status]}`;
 
           const conteudo = (
             <>
-              <span className="text-lg font-bold">Mesa {numeroFormatado}</span>
+              <span className="text-lg font-bold">{rotuloMesa(mesa.tipo, mesa.numero)}</span>
               <span className="text-sm">{LABEL_STATUS[mesa.status]}</span>
               {mesa.status !== "livre" && (
                 <span className="text-base font-semibold">{formatBRL(mesa.total)}</span>
