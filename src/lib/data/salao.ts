@@ -37,6 +37,22 @@ export async function getSalaoData() {
     totalPorComanda.set(item.comanda_id, atual + item.preco_unit * item.quantidade);
   }
 
+  // Mesa aberta sem nenhum item (abriu por engano e nao lancou nada) libera
+  // sozinha - decisao de 20/09/2026, apos teste real. Reaproveita os dados
+  // ja buscados acima em vez de fazer consultas extras.
+  const comandasVazias = (comandasAbertas ?? []).filter((c) => !totalPorComanda.has(c.id));
+  if (comandasVazias.length > 0) {
+    await supabase
+      .from("comandas")
+      .delete()
+      .in("id", comandasVazias.map((c) => c.id));
+    await supabase
+      .from("mesas")
+      .update({ status: "livre", gorjeta_ativa: false, gorjeta_pct: 10, qtd_pessoas: null })
+      .in("id", comandasVazias.map((c) => c.mesa_id));
+  }
+  const mesaIdsLiberadas = new Set(comandasVazias.map((c) => c.mesa_id));
+
   const totalPorMesa = new Map<string, number>();
   for (const comanda of comandasAbertas ?? []) {
     totalPorMesa.set(comanda.mesa_id, totalPorComanda.get(comanda.id) ?? 0);
@@ -44,7 +60,8 @@ export async function getSalaoData() {
 
   const mesasComTotal: MesaComTotal[] = (mesas ?? []).map((mesa) => ({
     ...mesa,
-    total: totalPorMesa.get(mesa.id) ?? 0,
+    status: mesaIdsLiberadas.has(mesa.id) ? "livre" : mesa.status,
+    total: mesaIdsLiberadas.has(mesa.id) ? 0 : (totalPorMesa.get(mesa.id) ?? 0),
   }));
 
   const ocupadas = mesasComTotal.filter((m) => m.status !== "livre").length;

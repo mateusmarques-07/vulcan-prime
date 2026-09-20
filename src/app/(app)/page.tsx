@@ -3,7 +3,7 @@ import { getSalaoData } from "@/lib/data/salao";
 import { formatBRL } from "@/lib/format";
 
 const ESTILO_STATUS = {
-  livre: "border-neutral-800 bg-neutral-900 text-neutral-400 hover:border-neutral-600",
+  livre: "border-green-700 bg-green-950/30 text-green-100 hover:border-green-500",
   ocupada: "border-orange-600 bg-orange-950/40 text-orange-100",
   conta: "border-red-600 bg-red-950/40 text-red-100",
 } as const;
