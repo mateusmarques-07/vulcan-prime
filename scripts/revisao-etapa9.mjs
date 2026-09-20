@@ -39,12 +39,6 @@ await page.click('button[type="submit"]');
 await page.waitForURL(`${BASE}/`, { timeout: 10000 });
 check("login: entra no Salão", await page.locator("text=Mesas ocupadas").first().isVisible());
 
-// ---------- SALAO: 10 mesas + Balcão + Entrega ----------
-check("salao: 10 mesas numeradas + Balcão + Entrega = 12 campos", (await page.locator("text=Livre").count()) === 12);
-check("salao: mostra Balcão", await page.locator("text=Balcão").first().isVisible());
-check("salao: mostra Entrega", await page.locator("text=Entrega").first().isVisible());
-check("salao: mesa 11 não aparece mais numerada", !(await page.locator("text=Mesa 11").first().isVisible()));
-
 // ---------- FLUXO MESA NORMAL: pagamento cobrindo o TOTAL (item + gorjeta) ----------
 await abrirMesaGrid(page, "1");
 await page.locator("nav >> text=Espetos").click();
@@ -60,6 +54,10 @@ await page.waitForTimeout(200);
 check(
   "fechamento: total mostra 19,80 (18 + 10%)",
   await page.locator("text=R$ 19,80").first().isVisible()
+);
+check(
+  "fechamento: não mostra mais campo de taxa de entrega (virou módulo próprio de Entregas)",
+  !(await page.locator("text=Taxa de entrega").isVisible())
 );
 
 // paga parte no cartao (comida) e parte em dinheiro (gorjeta) - cenario que
@@ -164,50 +162,37 @@ await campoPreco.blur();
 await page.waitForTimeout(150);
 check("produtos: campo de preço novo formata pra 15.00 ao sair do campo", (await campoPreco.inputValue()) === "15.00");
 
-// ---------- BALCAO ----------
+// ---------- BALCAO (RETIRADA) - agora mesa 12, sem campo de taxa de entrega ----------
 await page.goto(`${BASE}/`);
 await page.waitForLoadState("networkidle");
-await page.locator('form:has(input[value="11"]) button[type="submit"]').first().click();
-await page.waitForURL(`${BASE}/mesa/11`, { timeout: 10000 });
-check("balcão: comanda abre com rótulo Balcão", await page.locator("text=Balcão -").first().isVisible());
+await page.locator('form:has(input[value="12"]) button[type="submit"]').first().click();
+await page.waitForURL(`${BASE}/mesa/12`, { timeout: 10000 });
+check(
+  "balcão: comanda abre com rótulo Balcão (Retirada)",
+  await page.locator("text=Balcão (Retirada) -").first().isVisible()
+);
 await page.locator("nav >> text=Bebidas").click();
 await page.locator('button:has-text("Água Mineral")').click();
-await page.waitForURL((u) => u.pathname === "/mesa/11", { timeout: 10000 });
+await page.waitForURL((u) => u.pathname === "/mesa/12", { timeout: 10000 });
 await page.click('button:has-text("Fechar conta")');
-await page.waitForURL(`${BASE}/mesa/11/fechamento`, { timeout: 10000 });
-check(
-  "balcão: tela de fechamento NÃO mostra campo de taxa de entrega",
-  !(await page.locator("text=Taxa de entrega").isVisible())
-);
+await page.waitForURL(`${BASE}/mesa/12/fechamento`, { timeout: 10000 });
 await preencherValorForma(page, "Pix", "4");
 await page.waitForTimeout(200);
 await page.locator('button:has-text("Confirmar pagamento")').click();
 await page.waitForURL(`${BASE}/`, { timeout: 10000 });
 check("balcão: fecha e libera normalmente", await page.locator("text=0 / 12").first().isVisible());
 
-// ---------- ENTREGA (com taxa) ----------
-await page.locator('form:has(input[value="12"]) button[type="submit"]').first().click();
-await page.waitForURL(`${BASE}/mesa/12`, { timeout: 10000 });
-check("entrega: comanda abre com rótulo Entrega", await page.locator("text=Entrega -").first().isVisible());
-await page.locator("nav >> text=Hambúrgueres").click();
-await page.locator('button:has-text("Vulcan Burger")').click();
-await page.waitForURL((u) => u.pathname === "/mesa/12", { timeout: 10000 });
-await page.click('button:has-text("Fechar conta")');
-await page.waitForURL(`${BASE}/mesa/12/fechamento`, { timeout: 10000 });
-const campoTaxa = page.locator("text=Taxa de entrega").locator("xpath=following-sibling::input").first();
-check("entrega: taxa de entrega já vem com R$ 5,00 preenchido", (await campoTaxa.inputValue()) === "5.00");
-check("entrega: total já soma taxa de entrega (32 + 5 = 37)", await page.locator("text=R$ 37,00").first().isVisible());
-await preencherValorForma(page, "Dinheiro", "37");
-await page.waitForTimeout(200);
-await page.locator('button:has-text("Confirmar pagamento")').click();
-await page.waitForURL(`${BASE}/`, { timeout: 10000 });
-
-// ---------- RECEBIMENTOS: mostra rótulos e taxa de entrega ----------
+// ---------- RECEBIMENTOS: mostra rótulo Balcão (Retirada) ----------
 await page.goto(`${BASE}/recebimentos`);
 await page.waitForLoadState("networkidle");
-check("recebimentos: mostra 'Balcão' na lista", await page.locator("text=Balcão").first().isVisible());
-check("recebimentos: mostra 'Entrega' na lista", await page.locator("text=Entrega").first().isVisible());
-check("recebimentos: coluna de taxa de entrega aparece", await page.locator("text=Entrega").first().isVisible());
+// obs: o locator precisa ficar restrito a "table" - o <select> do filtro de
+// tipo tambem tem uma <option>"Balcão (Retirada)"</option> em texto, e um
+// <option> de um select fechado nao conta como "visivel" pro Playwright,
+// entao um locator solto acaba nessa opcao escondida em vez da tabela.
+check(
+  "recebimentos: mostra 'Balcão (Retirada)' na lista",
+  await page.locator("table").locator("text=Balcão (Retirada)").first().isVisible()
+);
 await page.screenshot({ path: `${PREVIEWS}/05-recebimentos.png` });
 
 await browser.close();

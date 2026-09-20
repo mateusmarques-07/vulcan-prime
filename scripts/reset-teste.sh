@@ -22,5 +22,11 @@ curl -s -X PATCH "$SB_URL/rest/v1/mesas?status=neq.livre" \
   -d '{"status":"livre","gorjeta_ativa":false,"gorjeta_pct":0,"qtd_pessoas":null}' \
   -o /dev/null
 
-echo "reset ok - comandas fechadas: $(echo "$COMANDA_IDS" | grep -c . || true)"
+ENTREGA_IDS=$(curl -s "$SB_URL/rest/v1/entregas?select=id&status=neq.finalizada" -H "$H_APIKEY" -H "$H_AUTH" | grep -o '"id":"[^"]*"' | cut -d'"' -f4)
+for ID in $ENTREGA_IDS; do
+  curl -s -X DELETE "$SB_URL/rest/v1/entrega_itens?entrega_id=eq.$ID" -H "$H_APIKEY" -H "$H_AUTH" -o /dev/null
+  curl -s -X DELETE "$SB_URL/rest/v1/entregas?id=eq.$ID" -H "$H_APIKEY" -H "$H_AUTH" -o /dev/null
+done
+
+echo "reset ok - comandas fechadas: $(echo "$COMANDA_IDS" | grep -c . || true), entregas ativas apagadas: $(echo "$ENTREGA_IDS" | grep -c . || true)"
 curl -s "$SB_URL/rest/v1/mesas?select=numero,tipo,status&order=numero" -H "$H_APIKEY" -H "$H_AUTH"
