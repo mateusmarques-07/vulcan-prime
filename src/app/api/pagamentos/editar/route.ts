@@ -12,5 +12,5 @@ export async function POST(request: Request) {
     await supabase.from("formas_pagamento").update({ nome }).eq("id", id);
   }
 
-  return NextResponse.redirect(redirectUrl("/pagamentos", request), 303);
+  return NextResponse.redirect(redirectUrl("/configuracoes/pagamentos", request), 303);
 }

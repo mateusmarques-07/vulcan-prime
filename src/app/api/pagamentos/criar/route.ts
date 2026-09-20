@@ -11,5 +11,5 @@ export async function POST(request: Request) {
     await supabase.from("formas_pagamento").insert({ nome });
   }
 
-  return NextResponse.redirect(redirectUrl("/pagamentos", request), 303);
+  return NextResponse.redirect(redirectUrl("/configuracoes/pagamentos", request), 303);
 }

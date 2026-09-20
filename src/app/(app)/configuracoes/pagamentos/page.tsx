@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getFormasPagamentoTodas } from "@/lib/data/pagamentos";
 import { ErrorModal } from "@/components/ErrorModal";
 
@@ -11,6 +12,9 @@ export default async function PagamentosPage({
 
   return (
     <div className="mx-auto max-w-2xl">
+      <Link href="/configuracoes" className="text-sm text-neutral-400 hover:text-orange-500">
+        ← Configurações
+      </Link>
       <h1 className="mb-6 text-2xl font-bold text-white">Formas de pagamento</h1>
 
       <div className="mb-6 space-y-2">
@@ -70,7 +74,7 @@ export default async function PagamentosPage({
         </form>
       </div>
 
-      <ErrorModal mensagem={erro} voltarHref="/pagamentos" />
+      <ErrorModal mensagem={erro} voltarHref="/configuracoes/pagamentos" />
     </div>
   );
 }

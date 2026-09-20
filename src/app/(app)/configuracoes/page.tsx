@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { alterarSenha } from "./actions";
 
 export default async function ConfiguracoesPage({
@@ -10,6 +11,13 @@ export default async function ConfiguracoesPage({
   return (
     <div className="mx-auto max-w-sm">
       <h1 className="mb-6 text-2xl font-bold text-white">Configurações</h1>
+
+      <Link
+        href="/configuracoes/pagamentos"
+        className="mb-6 block rounded-xl border border-neutral-800 bg-neutral-900 p-4 text-sm font-medium text-neutral-200 transition hover:border-orange-500 hover:text-orange-500"
+      >
+        Formas de pagamento →
+      </Link>
 
       <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-5">
         <h2 className="mb-4 text-sm font-semibold text-neutral-200">Alterar senha</h2>
