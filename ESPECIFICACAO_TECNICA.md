@@ -180,9 +180,9 @@ Exemplos:
 * Bebidas
 * Porções
 
-As categorias devem ser geradas automaticamente a partir dos produtos ativos cadastrados.
+**Atualizado em 19/09/2026 (ver seção 35):** categoria deixou de ser texto livre gerado a partir dos produtos e virou cadastro próprio, com tela dedicada de criar/renomear/remover.
 
-Exibir categorias como abas ou filtros.
+Exibir categorias como **menu lateral** (decisão de 19/09/2026, depois de o cliente ver a versão em abas horizontais e achar ruim — abas cortavam categoria e precisavam rolar).
 
 Cada produto deve mostrar:
 
@@ -460,9 +460,7 @@ Campos:
 * Ativo
 * Ordem
 
-Categoria será texto livre.
-
-Ao digitar categoria, permitir reaproveitar categorias já existentes.
+**Atualizado em 19/09/2026 (ver seção 35):** Categoria não é mais texto livre — o produto escolhe (select) uma categoria já cadastrada na tela própria de Categorias. Evita duplicidade tipo "Espeto" e "Espetos" virando categorias diferentes por erro de digitação.
 
 Exemplo:
 
@@ -478,7 +476,7 @@ Adicionar:
 
 Usar esse campo para organizar a apresentação dos produtos dentro das categorias.
 
-Categorias podem ser apresentadas alfabeticamente.
+Categorias têm seu próprio campo de ordem (seção 35) e são exibidas nessa ordem, não mais alfabeticamente.
 
 ## Exclusão
 
@@ -674,6 +672,8 @@ Um fechamento realizado próximo da meia-noite não pode aparecer incorretamente
 Utilizar Supabase/PostgreSQL.
 
 **Schema atualizado em 19/09/2026** — em relação à primeira versão do prompt: a tabela `fechamentos` perdeu as colunas únicas `forma_pagamento_id`/`forma_pagamento_nome` (agora vivem em `fechamento_pagamentos`, que suporta N formas por fechamento) e ganhou `gorjeta_forma_pagamento_id`/`gorjeta_forma_pagamento_nome` (forma única, própria da gorjeta) e `qtd_pessoas` (informativo).
+
+**Atualizado de novo em 19/09/2026 (mais tarde, ver seção 35):** nasceu a tabela `categorias`, e `produtos.categoria` (texto livre) virou `produtos.categoria_id` (uuid, `references categorias(id)`, sem `on delete cascade` — apagar uma categoria com produto vinculado é bloqueado pela FK de propósito).
 
 ```sql
 create extension if not exists "pgcrypto";
@@ -956,9 +956,11 @@ Deixar o código organizado para permitir evolução futura.
 
 # 31. ORDEM DE IMPLEMENTAÇÃO
 
+**Todas as 9 etapas abaixo foram concluídas e testadas em 19/09/2026** (29 testes reais de ponta a ponta, ver seção 35). Mantendo o texto original de cada etapa como referência do que foi pedido.
+
 Executar nesta ordem:
 
-### ETAPA 1 - Autenticação e Banco
+### ETAPA 1 - Autenticação e Banco ✅ concluída
 
 * tela de login;
 * proteção de rotas;
@@ -968,14 +970,14 @@ Executar nesta ordem:
 * seed das 12 mesas;
 * seed das formas de pagamento.
 
-### ETAPA 2 - Salão
+### ETAPA 2 - Salão ✅ concluída
 
 * grade das mesas;
 * status;
 * resumo superior;
 * abertura da mesa.
 
-### ETAPA 3 - Comanda
+### ETAPA 3 - Comanda ✅ concluída
 
 * categorias;
 * produtos;
@@ -984,7 +986,7 @@ Executar nesta ordem:
 * observações;
 * total.
 
-### ETAPA 4 - Fechamento
+### ETAPA 4 - Fechamento ✅ concluída
 
 * resumo;
 * divisão por pessoas (opcional, informativa);
@@ -995,7 +997,7 @@ Executar nesta ordem:
 * confirmação;
 * encerramento.
 
-### ETAPA 5 - Produtos
+### ETAPA 5 - Produtos ✅ concluída
 
 * cadastro;
 * edição;
@@ -1003,14 +1005,14 @@ Executar nesta ordem:
 * categorias;
 * ordenação.
 
-### ETAPA 6 - Pagamentos
+### ETAPA 6 - Pagamentos ✅ concluída
 
 * cadastro;
 * edição;
 * ativação/desativação;
 * impedir desativação da última forma ativa.
 
-### ETAPA 7 - Recebimentos
+### ETAPA 7 - Recebimentos ✅ concluída
 
 * Hoje;
 * período;
@@ -1020,11 +1022,11 @@ Executar nesta ordem:
 * total;
 * fechamento individual.
 
-### ETAPA 8 - Alterar senha
+### ETAPA 8 - Alterar senha ✅ concluída
 
 * tela interna de alterar senha (dentro de configurações/perfil).
 
-### ETAPA 9 - Revisão
+### ETAPA 9 - Revisão ✅ concluída
 
 Testar fluxo completo:
 
@@ -1064,6 +1066,13 @@ Antes de adicionar qualquer funcionalidade que não esteja descrita neste docume
 
 **19/09/2026 (mais tarde, Etapas 2-3 implementadas)** — ver seção 34 abaixo: descoberto e contornado um bug real do Next.js com Server Actions repetidas na mesma página.
 
+**19/09/2026 (fim do dia, Etapas 4-9 implementadas em sequência):**
+
+1. Cardápio virou menu lateral em vez de abas horizontais (pedido do cliente ao ver a tela pronta).
+2. Categoria deixou de ser texto livre e virou cadastro próprio, com tela de criar/renomear/remover (ver seção 35) — pedido do cliente pensando em novos grupos de produto no futuro.
+3. Qualquer remoção/desativação bloqueada por regra do sistema (categoria com produto, última forma de pagamento ativa) agora mostra um popup explicando o motivo, em vez de falhar silenciosamente ou travar numa mensagem genérica.
+4. Etapas 4 a 9 completas e testadas (29 testes reais de ponta a ponta) — sistema fecha o V1 descrito neste documento.
+
 ---
 
 # 34. NOTA TÉCNICA: SERVER ACTIONS x ROUTE HANDLERS
@@ -1075,3 +1084,45 @@ Nesta versão do Next.js (16.3.5, a mesma usada nos outros projetos deste worksp
 Foi confirmado com testes reais (Playwright) isolando a causa: trocar a Server Action por uma **Route Handler tradicional** (`src/app/api/.../route.ts` com `export async function POST` + `<form method="POST" action="/api/...">` + `NextResponse.redirect(..., 303)`) resolve o problema completamente, porque a submissão vira um POST nativo do navegador (sem JS por trás), imune a esse bug do runtime client-side do Next.
 
 **Decisão de arquitetura para o resto do projeto:** qualquer tela onde a mesma ação (ou ações diferentes) pode ser disparada mais de uma vez sem navegação completa no meio — Comanda (Etapa 3, já feito, inclusive abrir mesa no Salão foi convertido por consistência), Fechamento (Etapa 4), CRUD de Produtos (Etapa 5), CRUD de Pagamentos (Etapa 6) — deve usar Route Handlers (`src/app/api/.../route.ts`) em vez de Server Actions. Login/logout continuam com Server Action normalmente porque só acontecem uma vez por carregamento de página (não expostos ao bug na prática).
+
+---
+
+# 35. CATEGORIAS (CADASTRO PRÓPRIO)
+
+**Decisão de 19/09/2026**, depois da Etapa 3 pronta: o cliente vai ter mais grupos de produto além dos 5 iniciais (Espetos, Hambúrgueres, Defumados, Bebidas, Porções) e quer poder criar e remover esses grupos livremente pelo próprio sistema — não só implicitamente digitando texto num campo de produto (que era o desenho original da seção 15).
+
+## Tabela
+
+```sql
+create table categorias (
+  id uuid primary key default gen_random_uuid(),
+  nome text not null unique,
+  ordem int not null default 0,
+  created_at timestamptz not null default now()
+);
+```
+
+`produtos.categoria_id` referencia `categorias(id)` **sem** `on delete cascade` — apagar uma categoria com produto vinculado (ativo ou não) é bloqueado pela própria constraint do banco.
+
+## Tela
+
+Acessível a partir de Produtos ("Gerenciar categorias"), não entra no menu principal (a seção 2 já definia só 4 itens de menu).
+
+* Criar: nome + ordem.
+* Editar: renomear e reordenar, inline.
+* Remover: bloqueado com popup explicando o motivo quando ainda existe produto (de qualquer status) apontando pra ela — ver seção 36.
+
+Diferente de Produtos e Formas de Pagamento, Categoria usa **remoção real** (não soft delete): não há necessidade de preservar histórico da categoria em si, já que o histórico de vendas (`itens_comanda`) guarda snapshot do nome e preço do produto, não da categoria.
+
+---
+
+# 36. POPUP DE BLOQUEIO (REGRA GERAL)
+
+**Decisão de 19/09/2026**, pedida pelo cliente: sempre que o sistema impedir uma remoção/desativação por regra de negócio, mostrar um popup (modal) explicando o motivo, em vez de deixar o botão simplesmente não fazer nada ou estourar um erro cru.
+
+Casos que já usam esse padrão:
+
+* Remover categoria com produto(s) vinculado(s) (seção 35).
+* Desativar a última forma de pagamento ativa (seção 17).
+
+Implementação: a Route Handler que faz a checagem redireciona de volta pra mesma tela com `?erro=<mensagem>` na URL; a página lê esse parâmetro e renderiza um modal simples (componente `ErrorModal`, reaproveitável) com a mensagem e um botão "Entendi" que fecha o popup (navegando pra mesma URL sem o parâmetro). Qualquer bloqueio novo que o sistema precisar no futuro deve seguir esse mesmo padrão.
