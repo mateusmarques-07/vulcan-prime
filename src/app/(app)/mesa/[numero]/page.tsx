@@ -20,7 +20,9 @@ export default async function ComandaPage({
   const { categoria } = await searchParams;
   const numero = Number(numeroParam);
 
-  const mesa = await getMesaPorNumero(numero);
+  // cardapio nao depende da mesa, entao ja busca em paralelo em vez de
+  // esperar a mesa resolver primeiro - reduz o tempo de carregamento
+  const [mesa, cardapio] = await Promise.all([getMesaPorNumero(numero), getCardapio()]);
   if (!mesa) notFound();
   if (mesa.status === "livre") redirect("/");
   if (mesa.status === "conta") redirect(`/mesa/${numero}/fechamento`);
@@ -28,10 +30,7 @@ export default async function ComandaPage({
   const comanda = await getComandaAbertaDaMesa(mesa.id);
   if (!comanda) redirect("/");
 
-  const [itens, cardapio] = await Promise.all([
-    getItensComanda(comanda.id),
-    getCardapio(),
-  ]);
+  const itens = await getItensComanda(comanda.id);
 
   const total = itens.reduce((soma, item) => soma + item.preco_unit * item.quantidade, 0);
   const numeroFormatado = String(mesa.numero).padStart(2, "0");

@@ -8,18 +8,7 @@ export async function POST(request: Request) {
   const numero = String(formData.get("numero"));
 
   const supabase = await createClient();
-  const { data: item } = await supabase
-    .from("itens_comanda")
-    .select("quantidade")
-    .eq("id", itemId)
-    .single();
-
-  if (item) {
-    await supabase
-      .from("itens_comanda")
-      .update({ quantidade: item.quantidade + 1 })
-      .eq("id", itemId);
-  }
+  await supabase.rpc("ajustar_quantidade_item", { p_item_id: itemId, p_delta: 1 });
 
   return NextResponse.redirect(redirectUrl(`/mesa/${numero}`, request), 303);
 }

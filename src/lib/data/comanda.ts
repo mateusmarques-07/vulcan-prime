@@ -25,7 +25,7 @@ export async function getMesaPorNumero(numero: number) {
   const supabase = await createClient();
   const { data } = await supabase
     .from("mesas")
-    .select("id, numero, status")
+    .select("id, numero, status, gorjeta_ativa, gorjeta_pct, qtd_pessoas")
     .eq("numero", numero)
     .single();
   return data;
@@ -57,16 +57,10 @@ export async function getItensComanda(comandaId: string): Promise<ItemComanda[]>
 export async function getCardapio(): Promise<CategoriaCardapio[]> {
   const supabase = await createClient();
 
-  const { data: categorias } = await supabase
-    .from("categorias")
-    .select("id, nome, ordem")
-    .order("ordem");
-
-  const { data: produtos } = await supabase
-    .from("produtos")
-    .select("id, nome, preco, categoria_id")
-    .eq("ativo", true)
-    .order("ordem");
+  const [{ data: categorias }, { data: produtos }] = await Promise.all([
+    supabase.from("categorias").select("id, nome, ordem").order("ordem"),
+    supabase.from("produtos").select("id, nome, preco, categoria_id").eq("ativo", true).order("ordem"),
+  ]);
 
   return (categorias ?? [])
     .map((categoria) => ({
