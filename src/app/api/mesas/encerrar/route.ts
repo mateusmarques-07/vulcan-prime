@@ -15,7 +15,6 @@ export async function POST(request: Request) {
   const numero = String(formData.get("numero"));
   const comandaId = String(formData.get("comandaId"));
   const gorjetaPct = Number(formData.get("gorjetaPct")) || 0;
-  const gorjetaFormaId = String(formData.get("gorjetaFormaId") || "");
   const pessoasRaw = String(formData.get("pessoas") || "");
   const qtdPessoas = pessoasRaw ? Number(pessoasRaw) : null;
 
@@ -63,16 +62,6 @@ export async function POST(request: Request) {
   }
 
   const gorjetaValor = round2((subtotal * gorjetaPct) / 100);
-  let gorjetaFormaNome: string | null = null;
-
-  if (gorjetaPct > 0) {
-    const forma = (formasAtivas ?? []).find((f) => f.id === gorjetaFormaId);
-    if (!forma) {
-      return erroRedirect(request, numero, "Selecione a forma de pagamento da gorjeta.");
-    }
-    gorjetaFormaNome = forma.nome;
-  }
-
   const total = round2(subtotal + gorjetaValor);
 
   const { data: fechamento, error: fechamentoError } = await supabase
@@ -83,8 +72,6 @@ export async function POST(request: Request) {
       subtotal,
       gorjeta_pct: gorjetaPct,
       gorjeta_valor: gorjetaValor,
-      gorjeta_forma_pagamento_id: gorjetaPct > 0 ? gorjetaFormaId : null,
-      gorjeta_forma_pagamento_nome: gorjetaFormaNome,
       qtd_pessoas: qtdPessoas,
       total,
     })
@@ -106,7 +93,10 @@ export async function POST(request: Request) {
     .update({ status: "fechada", fechada_em: new Date().toISOString() })
     .eq("id", comandaId);
 
-  await supabase.from("mesas").update({ status: "livre" }).eq("numero", Number(numero));
+  await supabase
+    .from("mesas")
+    .update({ status: "livre", gorjeta_ativa: false, gorjeta_pct: 10, qtd_pessoas: null })
+    .eq("numero", Number(numero));
 
   return NextResponse.redirect(redirectUrl("/", request), 303);
 }

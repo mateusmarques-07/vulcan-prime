@@ -47,6 +47,9 @@ export default async function FechamentoPage({
         itens={itens}
         subtotal={subtotal}
         formas={formas}
+        gorjetaAtivaInicial={mesa.gorjeta_ativa}
+        gorjetaPctInicial={mesa.gorjeta_pct}
+        pessoasInicial={mesa.qtd_pessoas}
       />
 
       <ErrorModal mensagem={erro} voltarHref={`/mesa/${numero}/fechamento`} />

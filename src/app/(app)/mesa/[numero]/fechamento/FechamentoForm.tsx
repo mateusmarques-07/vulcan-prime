@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { formatBRL, round2 } from "@/lib/format";
 import type { ItemComanda } from "@/lib/data/comanda";
 import type { FormaPagamento } from "@/lib/data/pagamentos";
@@ -11,18 +11,30 @@ export function FechamentoForm({
   itens,
   subtotal,
   formas,
+  gorjetaAtivaInicial,
+  gorjetaPctInicial,
+  pessoasInicial,
 }: {
   numero: number;
   comandaId: string;
   itens: ItemComanda[];
   subtotal: number;
   formas: FormaPagamento[];
+  gorjetaAtivaInicial: boolean;
+  gorjetaPctInicial: number;
+  pessoasInicial: number | null;
 }) {
-  const [gorjetaAtiva, setGorjetaAtiva] = useState(false);
-  const [gorjetaOpcao, setGorjetaOpcao] = useState<"10" | "15" | "outra">("10");
-  const [gorjetaCustom, setGorjetaCustom] = useState("");
-  const [gorjetaFormaId, setGorjetaFormaId] = useState("");
-  const [pessoas, setPessoas] = useState("");
+  const opcaoInicial =
+    gorjetaPctInicial === 10 || gorjetaPctInicial === 15 ? String(gorjetaPctInicial) : "outra";
+
+  const [gorjetaAtiva, setGorjetaAtiva] = useState(gorjetaAtivaInicial);
+  const [gorjetaOpcao, setGorjetaOpcao] = useState<"10" | "15" | "outra">(
+    opcaoInicial as "10" | "15" | "outra"
+  );
+  const [gorjetaCustom, setGorjetaCustom] = useState(
+    opcaoInicial === "outra" ? String(gorjetaPctInicial) : ""
+  );
+  const [pessoas, setPessoas] = useState(pessoasInicial ? String(pessoasInicial) : "");
   const [valores, setValores] = useState<Record<string, string>>({});
 
   const gorjetaPct = gorjetaAtiva
@@ -41,16 +53,7 @@ export function FechamentoForm({
   const numPessoas = Number(pessoas) || 0;
   const valorPorPessoa = numPessoas > 0 ? total / numPessoas : null;
 
-  const podeConfirmar =
-    Math.abs(faltaCobrir) < 0.005 && (!gorjetaAtiva || gorjetaFormaId !== "");
-
-  const reciboUrl = useMemo(() => {
-    const params = new URLSearchParams({
-      gorjetaPct: String(gorjetaPct),
-      pessoas: pessoas || "",
-    });
-    return `/recibo/${numero}?${params.toString()}`;
-  }, [numero, gorjetaPct, pessoas]);
+  const podeConfirmar = Math.abs(faltaCobrir) < 0.005;
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -132,46 +135,40 @@ export function FechamentoForm({
             <p className="text-sm text-neutral-300">
               Taxa de serviço ({gorjetaPct}%): {formatBRL(gorjetaValor)}
             </p>
-
-            <div>
-              <p className="mb-1 text-sm font-medium text-neutral-300">
-                Forma de pagamento da gorjeta
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {formas.map((forma) => (
-                  <button
-                    key={forma.id}
-                    type="button"
-                    onClick={() => setGorjetaFormaId(forma.id)}
-                    className={`rounded-lg border px-3 py-1.5 text-sm ${
-                      gorjetaFormaId === forma.id
-                        ? "border-orange-500 bg-orange-600 text-white"
-                        : "border-neutral-700 text-neutral-300"
-                    }`}
-                  >
-                    {forma.nome}
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
         )}
       </div>
 
       <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
-        <div className="mb-3 flex justify-between text-lg font-bold text-white">
-          <span>Total</span>
-          <span>{formatBRL(total)}</span>
+        <div className="mb-3 space-y-1 border-b border-neutral-800 pb-3">
+          <div className="flex justify-between text-sm text-neutral-400">
+            <span>Itens</span>
+            <span>{formatBRL(subtotal)}</span>
+          </div>
+          {gorjetaAtiva && (
+            <div className="flex justify-between text-sm text-neutral-400">
+              <span>Gorjeta ({gorjetaPct}%)</span>
+              <span>{formatBRL(gorjetaValor)}</span>
+            </div>
+          )}
+          <div className="flex justify-between text-lg font-bold text-white">
+            <span>Total</span>
+            <span>{formatBRL(total)}</span>
+          </div>
         </div>
 
-        <a
-          href={reciboUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mb-4 inline-block rounded-lg border border-neutral-700 px-4 py-2 text-sm text-neutral-200 transition hover:border-orange-500 hover:text-orange-500"
-        >
-          Imprimir recibo
-        </a>
+        <form method="POST" action="/api/mesas/imprimir-recibo" target="_blank" className="mb-4">
+          <input type="hidden" name="numero" value={numero} />
+          <input type="hidden" name="gorjetaAtiva" value={gorjetaAtiva.toString()} />
+          <input type="hidden" name="gorjetaPct" value={gorjetaPct} />
+          <input type="hidden" name="pessoas" value={pessoas} />
+          <button
+            type="submit"
+            className="inline-block rounded-lg border border-neutral-700 px-4 py-2 text-sm text-neutral-200 transition hover:border-orange-500 hover:text-orange-500"
+          >
+            Fechar conta e imprimir recibo
+          </button>
+        </form>
 
         <h3 className="mb-2 text-sm font-semibold text-neutral-200">
           Pagamento do subtotal ({formatBRL(subtotal)})
@@ -209,7 +206,6 @@ export function FechamentoForm({
           <input type="hidden" name="numero" value={numero} />
           <input type="hidden" name="comandaId" value={comandaId} />
           <input type="hidden" name="gorjetaPct" value={gorjetaPct} />
-          <input type="hidden" name="gorjetaFormaId" value={gorjetaFormaId} />
           <input type="hidden" name="pessoas" value={pessoas} />
           {formas.map((forma) => (
             <input
