@@ -1184,3 +1184,29 @@ Segunda rodada de testes reais do Mateus achou um bug crítico de fechamento e p
 **Gorjeta e nº de pessoas não se perdem mais ao sair da tela sem clicar em nada.** Antes só salvava ao clicar em "Fechar conta e imprimir recibo". Agora a tela de fechamento salva sozinha (debounce de 500ms) a cada mudança de gorjeta/pessoas/taxa de entrega, via `POST /api/mesas/salvar-parcial` — endpoint leve que só atualiza a mesa, sem navegar de página.
 
 **Feedback visual de clique** (`src/app/(app)/LoadingBar.tsx`): barra de progresso animada no topo + botão clicado fica meio apagado, em qualquer envio de formulário do sistema. Medição feita nesta rodada: cada ida ao Supabase custa ~0,2s de rede (banco fica fora do Brasil); isso é fixo e não depende do código — já está no mínimo de idas possível desde a otimização da seção 38. A barra de progresso é o jeito de deixar essa espera visível/intencional em vez de parecer travado.
+
+---
+
+# 40. MÓDULO DE ENTREGAS + SALÃO VOLTA A SER SÓ MESA/BALCÃO (20/09/2026)
+
+**Decisão do Mateus, terceira rodada do dia**: o campo único "Entrega" do Salão (seção 39) só suportava 1 pedido em aberto por vez — mas o restaurante normalmente manda **várias entregas ao mesmo tempo**, cada uma esperando o motoboy voltar pra confirmar o pagamento, de forma independente ("não posso marcar como recebido sem o retorno do motoboy, e às vezes saem 5 de uma vez"). A resposta foi tirar Entrega do mecanismo de mesa e criar um módulo próprio, com numeração contínua e quantas entregas simultâneas forem necessárias.
+
+**Salão volta a ser só Mesa e Balcão**, agora **11 mesas numeradas + Balcão por último** (12 campos, igual antes). A mesa 11 (que era o Balcão) virou mesa de verdade; a mesa 12 (que era a Entrega) virou o novo Balcão. `mesas.tipo` perde o valor `'entrega'` (só `'mesa'`/`'balcao'` daqui pra frente) e a coluna `mesas.taxa_entrega` foi removida — não se aplica mais a mesa nenhuma. Toda a lógica de taxa de entrega que vivia no fechamento de mesa (campo no `FechamentoForm`, reset pra R$5 ao confirmar pagamento, linha no recibo) foi removida por ser código morto depois dessa mudança.
+
+**"Balcão" virou "Balcão (Retirada)"** em todo lugar que aparece: Salão, comanda, Recebimentos (`rotuloMesa()` em `src/lib/mesa-label.ts`).
+
+**Módulo de Entregas** (`/entregas`), acessível pelo menu principal:
+- **Nova Entrega** (`/entregas/nova`): formulário com nome do cliente, endereço, produtos escolhidos do cardápio (com quantidade, preço vem sozinho), taxa de entrega (editável, pré-preenchida com R$5,00), forma de pagamento única (sem dividir — diferente da mesa) e observação opcional. Total calcula sozinho na tela (produtos + taxa). RPC `criar_entrega()` grava o cabeçalho + os itens numa transação só.
+- **Numeração contínua**: cada entrega recebe um número sequencial (`entregas.numero`, coluna `identity`) que **nunca reinicia**, mesmo depois de anos de uso.
+- **Várias entregas em aberto ao mesmo tempo**, sem limite — cada uma é uma linha independente na tabela `entregas`, não compete por um "campo" único como as mesas.
+- **Status manual em 3 estados** (`entregas.status`): ABERTA → EM ROTA → FINALIZADA, trocado direto na tela de detalhe (`/entregas/[numero]`) por botão, sem regra automática.
+- **Finalizar = confirmar o pagamento.** A RPC `finalizar_entrega()` congela um registro em `fechamentos` (com `tipo='entrega'`, sem mesa/comanda associada) + um em `fechamento_pagamentos` na forma escolhida na criação — isso faz a entrega **entrar automaticamente no caixa geral do dia**, junto com mesa e balcão, sem duplicar lógica de relatório.
+- **Histórico** (`/entregas/historico`): lista as entregas finalizadas (Número | Cliente | Valor | Pagamento | Data/Hora), nunca some, dá pra abrir cada uma pra conferir os produtos.
+- **Comprovante** (`/recibo/entrega/[numero]`): recibo térmico 80mm próprio, com nome/endereço do cliente, itens, taxa de entrega e forma de pagamento — disponível a qualquer momento (não só depois de finalizar), pra cada motoboy sair com o comprovante da entrega dele.
+
+**Banco de dados** (migração `0009_entregas.sql`):
+- `fechamentos` ganha a coluna `tipo` (`'mesa' | 'balcao' | 'entrega'`), **gravada explicitamente no momento do fechamento** em vez de derivada consultando a mesa atual — isso corrige um bug latente: antes, se uma mesa mudasse de tipo depois (como aconteceu agora, mesa 12 deixando de ser Entrega), os fechamentos antigos dela "trocariam de tipo" silenciosamente, porque o tipo era buscado pela mesa atual, não guardado no próprio registro histórico.
+- `fechamentos.comanda_id` e `fechamentos.mesa_numero` viram opcionais (`nullable`) — uma entrega não tem mesa nem comanda.
+- Tabelas novas `entregas` e `entrega_itens` (mesmo padrão de `comandas`/`itens_comanda`: item guarda nome/preço "fotografados" no momento do lançamento).
+
+**Recebimentos ganha filtro por tipo** (Mesa / Balcão (Retirada) / Entrega / Todos) na lista de "Fechamentos individuais" — o pedido original do Mateus. Entregas aparecem na lista como "Entrega #NN" (buscando o número em `entregas` pelo `fechamento_id`, já que não têm `mesa_numero`).
