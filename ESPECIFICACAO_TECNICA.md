@@ -1166,3 +1166,21 @@ Depois da V1 completa (etapas 1-9), o Mateus testou com dados reais e pediu os a
 **Menu:** "Pagamentos" saiu do menu principal (fica só Salão / Produtos / Recebimentos) e virou um link dentro de Configurações, junto de Alterar senha. Atualiza a seção 2.
 
 **Performance ao lançar/ajustar item.** Cada clique fazia 2-3 idas sequenciais ao banco (select existência + insert/update). Viraram funções Postgres únicas (`lancar_produto_comanda`, `ajustar_quantidade_item`) fazendo tudo numa ida só. A carga da tela da comanda também foi paralelizada (cardápio não depende da mesa, busca os dois ao mesmo tempo). Nota: parte da lentidão percebida é inerente ao modo dev (Turbopack/HMR) — tende a melhorar ainda mais rodando em produção.
+
+---
+
+# 39. SALÃO EM 12 CAMPOS + CORREÇÃO DO FECHAMENTO (20/09/2026)
+
+Segunda rodada de testes reais do Mateus achou um bug crítico de fechamento e pediu a reestruturação do Salão. Todos os itens abaixo implementados e testados (24 testes automatizados, ver seção 37 pro padrão de `BASE_URL`).
+
+**Bug crítico corrigido: pagamento comparava com o subtotal, não com o total.** Ao ativar gorjeta (ex.: item R$28 + 10% = R$30,80) e tentar pagar em duas formas (R$28 no cartão + R$2,80 em dinheiro, ou até o R$30,80 inteiro numa forma só), o sistema recusava — a validação de "valor bate" comparava a soma digitada contra `subtotal` (R$28), nunca contra o total com gorjeta. Corrigido em `src/app/api/mesas/encerrar/route.ts` e no cálculo de `faltaCobrir` do `FechamentoForm.tsx`: agora tudo compara contra `total = subtotal + gorjeta + taxa de entrega`. Esse bug também afetava o card do Salão (mostrava só o subtotal pra mesa em "Conta", ex. R$28 em vez de R$30,80) — mesma causa, corrigida em `src/lib/data/salao.ts`.
+
+**Salão vira 12 campos fixos: 10 mesas numeradas + Balcão + Entrega**, no lugar do grid solto de mesas. Balcão (venda de balcão/retirada) e Entrega (delivery) reaproveitam 100% do mecanismo de mesa/comanda existente — abrir, lançar produto, fechar, pagar — via uma coluna nova `mesas.tipo` (`'mesa' | 'balcao' | 'entrega'`, mesa 11 = Balcão, mesa 12 = Entrega). O rótulo exibido (`rotuloMesa()` em `src/lib/mesa-label.ts`) é a única coisa que muda visualmente: "Mesa 01", "Balcão", "Entrega". Migração `0008_balcao_entrega.sql`.
+
+**Entrega tem campo de taxa de entrega editável**, pré-preenchido com R$5,00 (`mesas.taxa_entrega`, também gravado em `fechamentos.taxa_entrega` no fechamento pra ficar no histórico). Some do total junto com itens e gorjeta. Ao confirmar o pagamento, a mesa Entrega volta pro padrão de R$5,00 pra próxima venda; Balcão nunca mostra esse campo.
+
+**Valores digitados formatam sozinhos.** Os campos de forma de pagamento no fechamento agora usam o mesmo `formatarInputMoeda()` que já existia em Produtos (`src/lib/format.ts`): digitou "30", saiu do campo, vira "30,00". Extraído num componente `<MoneyInput>` reaproveitado tanto em Produtos quanto no Fechamento.
+
+**Gorjeta e nº de pessoas não se perdem mais ao sair da tela sem clicar em nada.** Antes só salvava ao clicar em "Fechar conta e imprimir recibo". Agora a tela de fechamento salva sozinha (debounce de 500ms) a cada mudança de gorjeta/pessoas/taxa de entrega, via `POST /api/mesas/salvar-parcial` — endpoint leve que só atualiza a mesa, sem navegar de página.
+
+**Feedback visual de clique** (`src/app/(app)/LoadingBar.tsx`): barra de progresso animada no topo + botão clicado fica meio apagado, em qualquer envio de formulário do sistema. Medição feita nesta rodada: cada ida ao Supabase custa ~0,2s de rede (banco fica fora do Brasil); isso é fixo e não depende do código — já está no mínimo de idas possível desde a otimização da seção 38. A barra de progresso é o jeito de deixar essa espera visível/intencional em vez de parecer travado.
