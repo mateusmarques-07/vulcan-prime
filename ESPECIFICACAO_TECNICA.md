@@ -1139,3 +1139,30 @@ Dois bugs do Next.js em modo dev, não deste projeto especificamente:
 2. **Login caía sozinho no meio do uso** — mais grave. Dentro das Route Handlers, `new URL(caminho, request.url)` às vezes normalizava o host pra `localhost`, fazendo o navegador seguir o redirect pra uma origem diferente de onde a sessão foi criada — perde o cookie, cai no login. Fix: `src/lib/redirect.ts` monta a URL de redirect a partir do header `Host` da requisição (reflete o host real usado), nunca de `request.url`. Aplicado nas 18 Route Handlers do sistema.
 
 `scripts/teste-via-ip.mjs` testa esse cenário especificamente. `scripts/revisao-etapa9.mjs` aceita `BASE_URL` como variável de ambiente pra rodar a suíte inteira contra qualquer host — os 29 testes passam tanto via `localhost` quanto via IP.
+
+---
+
+# 38. AJUSTES PÓS-TESTE REAL (20/09/2026)
+
+Depois da V1 completa (etapas 1-9), o Mateus testou com dados reais e pediu os ajustes abaixo. Todos implementados e testados (29 testes, ver seção 34/37 pro histórico dos testes).
+
+**Mesa aberta sem item lançado libera sozinha.** Antes, abrir mesa por engano deixava ela presa em "Ocupada" pra sempre. Agora, toda carga do Salão verifica mesas ocupadas cuja comanda não tem nenhum item e devolve pra "Livre" sozinha (descarta a comanda vazia). Isso substitui/relativiza o texto original da seção 3 ("Ocupada = existe uma comanda aberta") — na prática, "existe uma comanda aberta **com item**".
+
+**Cor das mesas livres.** Viraram tom de verde (antes cinza neutro), acompanhando o mesmo padrão de ocupada (laranja) e conta (vermelho) já pedido na seção 3.
+
+**Produtos:** preço nos campos de edição mostra 2 casas decimais ("18.00"). Campo "ordem" saiu do formulário de **cadastro** (o sistema calcula sozinho: próximo número dentro da própria categoria) — continua editável depois, linha a linha, pra reordenar manualmente. Atualiza a seção 15.
+
+**Gorjeta não tem mais forma de pagamento própria** — reversão direta da decisão registrada nas seções 11/13/14/33 (19/09). Depois de usar o fluxo de verdade, ficou claro que perguntar "a gorjeta foi em qual forma" é atrito desnecessário. Gorjeta agora é só um valor à parte no relatório de Recebimentos, sem exigir forma de pagamento. Isso também corrigia um bug real: o botão "Confirmar pagamento" ficava travado mesmo com o subtotal batendo, porque faltava escolher a forma da gorjeta e a tela não avisava — removendo a exigência, o bug desaparece.
+
+**Fechamento vira 2 momentos, não 1 contínuo.** O fluxo real do restaurante tem uma espera no meio: o garçom leva a conta impressa, o cliente paga, o garçom volta — só aí o operador confirma o pagamento de verdade. Por isso:
+- O botão "Imprimir recibo" virou **"Fechar conta e imprimir recibo"**: continua abrindo o cupom numa aba nova, mas agora também **salva a gorjeta escolhida (ativa/percentual) e o número de pessoas direto na mesa** (`mesas.gorjeta_ativa`/`gorjeta_pct`, que já existiam desde a Etapa 1 sem uso até agora, e `mesas.qtd_pessoas`, novo).
+- Se o operador sair da tela de fechamento e voltar depois (esperando o garçom), a gorjeta e o número de pessoas continuam preenchidos — só falta preencher o pagamento de verdade, que só existe quando o garçom volta com o dinheiro/cartão.
+- Ao confirmar o pagamento com sucesso, esses campos da mesa são resetados (`gorjeta_ativa=false`, `gorjeta_pct=10`, `qtd_pessoas=null`) pro próximo uso.
+
+**Tela de fechamento mostra Itens + Gorjeta + Total separados** em vez de só um número de Total junto — pedido do Mateus pra ficar mais claro de onde vem cada parte.
+
+**Recebimentos:** "Por forma de pagamento" agora soma só o subtotal (sem a gorjeta, que não tem forma própria). Cada fechamento na lista mostra a gorjeta separada (ex: "Pix R$ 54,00 + Gorjeta R$ 5,40") em vez de "(Gorjeta: Pix)".
+
+**Menu:** "Pagamentos" saiu do menu principal (fica só Salão / Produtos / Recebimentos) e virou um link dentro de Configurações, junto de Alterar senha. Atualiza a seção 2.
+
+**Performance ao lançar/ajustar item.** Cada clique fazia 2-3 idas sequenciais ao banco (select existência + insert/update). Viraram funções Postgres únicas (`lancar_produto_comanda`, `ajustar_quantidade_item`) fazendo tudo numa ida só. A carga da tela da comanda também foi paralelizada (cardápio não depende da mesa, busca os dois ao mesmo tempo). Nota: parte da lentidão percebida é inerente ao modo dev (Turbopack/HMR) — tende a melhorar ainda mais rodando em produção.
