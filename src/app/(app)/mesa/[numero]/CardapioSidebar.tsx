@@ -44,7 +44,7 @@ export function CardapioSidebar({
         ))}
       </nav>
 
-      <div className="grid flex-1 grid-cols-2 content-start gap-3 sm:grid-cols-3">
+      <div className="flex flex-1 flex-col gap-2">
         {categoriaAtiva.produtos.map((produto) => (
           <form key={produto.id} method="POST" action="/api/itens/lancar">
             <input type="hidden" name="comandaId" value={comandaId} />
@@ -53,10 +53,15 @@ export function CardapioSidebar({
             <input type="hidden" name="categoria" value={categoriaAtiva.id} />
             <button
               type="submit"
-              className="flex w-full flex-col items-start gap-1 rounded-xl border border-neutral-800 bg-neutral-900 p-3 text-left transition hover:border-orange-500"
+              className="flex w-full items-center justify-between gap-3 rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-3 text-left transition hover:border-orange-500"
             >
-              <span className="font-medium text-white">{produto.nome}</span>
-              <span className="text-orange-400">{formatBRL(produto.preco)}</span>
+              <span className="flex flex-col">
+                <span className="text-base font-semibold text-white">{produto.nome}</span>
+                {produto.descricao && (
+                  <span className="mt-0.5 text-xs text-neutral-400">{produto.descricao}</span>
+                )}
+              </span>
+              <span className="shrink-0 font-medium text-orange-400">{formatBRL(produto.preco)}</span>
             </button>
           </form>
         ))}

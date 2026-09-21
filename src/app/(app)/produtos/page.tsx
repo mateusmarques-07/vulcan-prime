@@ -58,6 +58,13 @@ export default async function ProdutosPage() {
                         defaultValue={produto.nome}
                         className="min-w-[10rem] flex-1 rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-1.5 text-white outline-none focus:border-orange-500"
                       />
+                      <input
+                        type="text"
+                        name="descricao"
+                        placeholder="Descrição (opcional)"
+                        defaultValue={produto.descricao ?? ""}
+                        className="min-w-[12rem] flex-1 rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-1.5 text-sm text-white outline-none focus:border-orange-500"
+                      />
                       <select
                         name="categoria_id"
                         defaultValue={produto.categoria_id}
@@ -116,6 +123,12 @@ export default async function ProdutosPage() {
             placeholder="Nome do produto"
             required
             className="min-w-[10rem] flex-1 rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-white outline-none focus:border-orange-500"
+          />
+          <input
+            type="text"
+            name="descricao"
+            placeholder="Descrição (opcional)"
+            className="min-w-[12rem] flex-1 rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white outline-none focus:border-orange-500"
           />
           <select
             name="categoria_id"

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 export type ProdutoAdmin = {
   id: string;
   nome: string;
+  descricao: string | null;
   preco: number;
   ordem: number;
   ativo: boolean;
@@ -15,7 +16,7 @@ export async function getProdutosAdmin(): Promise<ProdutoAdmin[]> {
 
   const { data: produtos } = await supabase
     .from("produtos")
-    .select("id, nome, preco, ordem, ativo, categoria_id")
+    .select("id, nome, descricao, preco, ordem, ativo, categoria_id")
     .order("ordem");
 
   const { data: categorias } = await supabase.from("categorias").select("id, nome");

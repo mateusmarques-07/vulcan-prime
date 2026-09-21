@@ -12,6 +12,7 @@ export type ItemComanda = {
 export type ProdutoCardapio = {
   id: string;
   nome: string;
+  descricao: string | null;
   preco: number;
 };
 
@@ -59,7 +60,7 @@ export async function getCardapio(): Promise<CategoriaCardapio[]> {
 
   const [{ data: categorias }, { data: produtos }] = await Promise.all([
     supabase.from("categorias").select("id, nome, ordem").order("ordem"),
-    supabase.from("produtos").select("id, nome, preco, categoria_id").eq("ativo", true).order("ordem"),
+    supabase.from("produtos").select("id, nome, descricao, preco, categoria_id").eq("ativo", true).order("ordem"),
   ]);
 
   return (categorias ?? [])
@@ -68,7 +69,7 @@ export async function getCardapio(): Promise<CategoriaCardapio[]> {
       nome: categoria.nome,
       produtos: (produtos ?? [])
         .filter((p) => p.categoria_id === categoria.id)
-        .map((p) => ({ id: p.id, nome: p.nome, preco: p.preco })),
+        .map((p) => ({ id: p.id, nome: p.nome, descricao: p.descricao, preco: p.preco })),
     }))
     .filter((categoria) => categoria.produtos.length > 0);
 }

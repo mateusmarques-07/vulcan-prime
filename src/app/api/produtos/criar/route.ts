@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 export async function POST(request: Request) {
   const formData = await request.formData();
   const nome = String(formData.get("nome") ?? "").trim();
+  const descricao = String(formData.get("descricao") ?? "").trim();
   const categoriaId = String(formData.get("categoria_id") ?? "");
   const preco = Number(formData.get("preco")) || 0;
 
@@ -25,6 +26,7 @@ export async function POST(request: Request) {
 
     await supabase.from("produtos").insert({
       nome,
+      descricao: descricao || null,
       categoria_id: categoriaId,
       preco,
       ordem,
