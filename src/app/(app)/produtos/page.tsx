@@ -26,6 +26,16 @@ export default async function ProdutosPage() {
         </Link>
       </div>
 
+      <div className="sticky top-0 z-10 mb-2 flex flex-wrap items-center gap-2 border-b border-neutral-800 bg-neutral-950 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
+        <span className="min-w-[10rem] flex-1">Nome</span>
+        <span className="min-w-[12rem] flex-1">Descrição</span>
+        <span className="w-40">Categoria</span>
+        <span className="w-24">Preço</span>
+        <span className="w-16 text-center">Ordem</span>
+        <span className="w-[4.5rem]">Salvar</span>
+        <span className="w-20">Ativo</span>
+      </div>
+
       <div className="mb-6 space-y-6">
         {produtosPorCategoria.map(({ categoria, produtos: produtosDaCategoria }) => (
           <div key={categoria.id}>
