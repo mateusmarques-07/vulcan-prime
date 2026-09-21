@@ -11,8 +11,15 @@ const LINKS = [
   { href: "/recebimentos", label: "Recebimentos" },
 ];
 
-export function Nav({ logout }: { logout: (formData: FormData) => void }) {
+export function Nav({
+  logout,
+  isGarcom = false,
+}: {
+  logout: (formData: FormData) => void;
+  isGarcom?: boolean;
+}) {
   const pathname = usePathname();
+  const links = isGarcom ? LINKS.filter((link) => link.href === "/") : LINKS;
 
   return (
     <header className="border-b border-neutral-800 bg-neutral-950">
@@ -23,7 +30,7 @@ export function Nav({ logout }: { logout: (formData: FormData) => void }) {
             <span className="text-lg font-black tracking-tight text-orange-500">VULCAN PRIME</span>
           </Link>
           <nav className="flex gap-1">
-            {LINKS.map((link) => {
+            {links.map((link) => {
               const ativo = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
               return (
                 <Link
@@ -43,12 +50,14 @@ export function Nav({ logout }: { logout: (formData: FormData) => void }) {
         </div>
 
         <div className="flex items-center gap-2">
-          <Link
-            href="/configuracoes"
-            className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 transition hover:border-orange-500 hover:text-orange-500"
-          >
-            Configurações
-          </Link>
+          {!isGarcom && (
+            <Link
+              href="/configuracoes"
+              className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 transition hover:border-orange-500 hover:text-orange-500"
+            >
+              Configurações
+            </Link>
+          )}
           <form action={logout}>
             <button
               type="submit"

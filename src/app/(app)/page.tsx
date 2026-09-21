@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getSalaoData } from "@/lib/data/salao";
 import { formatBRL } from "@/lib/format";
 import { rotuloMesa } from "@/lib/mesa-label";
+import { RealtimeRefresh } from "@/components/RealtimeRefresh";
 
 const ESTILO_STATUS = {
   livre: "border-green-700 bg-green-950/30 text-green-100 hover:border-green-500",
@@ -20,6 +21,9 @@ export default async function SalaoPage() {
 
   return (
     <div>
+      {/* so "itens_comanda": watch "mesas"/"comandas" tambem conflita com a liberacao automatica de mesa vazia logo apos abrir */}
+      <RealtimeRefresh tables={["itens_comanda"]} />
+
       <div className="mx-auto mb-8 grid max-w-5xl grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
           <p className="text-sm text-neutral-400">Mesas ocupadas</p>

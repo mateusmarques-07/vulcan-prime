@@ -1,9 +1,12 @@
 // Cria (ou, se já existir, atualiza a senha de) um usuário de login do
 // sistema. Uso:
-//   node scripts/criar-usuario.mjs <usuario> <senha>
+//   node scripts/criar-usuario.mjs <usuario> <senha> [papel]
 // O "usuario" vira "<usuario>@vulcanprime.local" no Supabase Auth (ver
 // src/lib/auth.ts) - não precisa ser um e-mail de verdade, é só a forma de
 // reaproveitar o Supabase Auth pra um login por usuário/senha simples.
+// "papel" é opcional: passe "garcom" pra criar um login restrito (só Salão
+// e Comanda, ver middleware.ts). Sem esse argumento, o login continua com
+// acesso total (comportamento de sempre, nada muda pros logins existentes).
 // Usa a API REST direto (em vez do SDK) porque o SDK do supabase-js exige
 // WebSocket nativo, que só existe a partir do Node 22 - este VPS roda Node 20.
 import { readFileSync } from "node:fs";
@@ -14,11 +17,12 @@ for (const linha of envFile.split("\n")) {
   if (chave && resto.length) process.env[chave.trim()] ||= resto.join("=").trim();
 }
 
-const [usuario, senha] = process.argv.slice(2);
+const [usuario, senha, papel] = process.argv.slice(2);
 if (!usuario || !senha) {
-  console.error("Uso: node scripts/criar-usuario.mjs <usuario> <senha>");
+  console.error("Uso: node scripts/criar-usuario.mjs <usuario> <senha> [papel]");
   process.exit(1);
 }
+const userMetadata = papel ? { papel } : undefined;
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const HEADERS = {
@@ -31,7 +35,12 @@ const email = `${usuario}@vulcanprime.local`;
 const criar = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
   method: "POST",
   headers: HEADERS,
-  body: JSON.stringify({ email, password: senha, email_confirm: true }),
+  body: JSON.stringify({
+    email,
+    password: senha,
+    email_confirm: true,
+    ...(userMetadata ? { user_metadata: userMetadata } : {}),
+  }),
 });
 const corpoCriar = await criar.json();
 
@@ -56,7 +65,10 @@ if (!usuarioExistente) {
 const atualizar = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${usuarioExistente.id}`, {
   method: "PUT",
   headers: HEADERS,
-  body: JSON.stringify({ password: senha }),
+  body: JSON.stringify({
+    password: senha,
+    ...(userMetadata ? { user_metadata: userMetadata } : {}),
+  }),
 });
 
 if (!atualizar.ok) {
