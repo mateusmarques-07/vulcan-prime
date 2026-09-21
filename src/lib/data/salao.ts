@@ -21,7 +21,7 @@ export async function getSalaoData() {
 
   const { data: comandasAbertas } = await supabase
     .from("comandas")
-    .select("id, mesa_id")
+    .select("id, mesa_id, aberta_em")
     .eq("status", "aberta");
 
   const comandaIds = (comandasAbertas ?? []).map((c) => c.id);
@@ -43,7 +43,21 @@ export async function getSalaoData() {
   // Mesa aberta sem nenhum item (abriu por engano e nao lancou nada) libera
   // sozinha - decisao de 20/09/2026, apos teste real. Reaproveita os dados
   // ja buscados acima em vez de fazer consultas extras.
-  const comandasVazias = (comandasAbertas ?? []).filter((c) => !totalPorComanda.has(c.id));
+  //
+  // Folga de 60s (21/09/2026): sem isso, uma mesa que acabou de ser aberta
+  // (ainda sem o 1o item) podia ser apagada por essa limpeza rodando por
+  // causa de tempo real disparado por QUALQUER outra mesa - o garcom abre a
+  // mesa, antes de escolher o produto alguem mexe em outra comanda, o
+  // Salao atualiza sozinho, a limpeza varre tudo e derruba a mesa que
+  // acabou de abrir. A folga da tempo pro primeiro item chegar antes da
+  // comanda ser considerada "esquecida vazia" de verdade.
+  const AGORA = Date.now();
+  const FOLGA_MESA_VAZIA_MS = 60_000;
+  const comandasVazias = (comandasAbertas ?? []).filter(
+    (c) =>
+      !totalPorComanda.has(c.id) &&
+      AGORA - new Date(c.aberta_em).getTime() > FOLGA_MESA_VAZIA_MS
+  );
   if (comandasVazias.length > 0) {
     await supabase
       .from("comandas")
