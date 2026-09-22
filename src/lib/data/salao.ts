@@ -44,15 +44,17 @@ export async function getSalaoData() {
   // sozinha - decisao de 20/09/2026, apos teste real. Reaproveita os dados
   // ja buscados acima em vez de fazer consultas extras.
   //
-  // Folga de 60s (21/09/2026): sem isso, uma mesa que acabou de ser aberta
-  // (ainda sem o 1o item) podia ser apagada por essa limpeza rodando por
-  // causa de tempo real disparado por QUALQUER outra mesa - o garcom abre a
-  // mesa, antes de escolher o produto alguem mexe em outra comanda, o
-  // Salao atualiza sozinho, a limpeza varre tudo e derruba a mesa que
-  // acabou de abrir. A folga da tempo pro primeiro item chegar antes da
-  // comanda ser considerada "esquecida vazia" de verdade.
+  // Folga (21/09/2026, reduzida de 60s pra 10s em 22/09/2026): sem isso, uma
+  // mesa que acabou de ser aberta (ainda sem o 1o item) podia ser apagada
+  // por essa limpeza rodando por causa de tempo real disparado por
+  // QUALQUER outra mesa - o garcom abre a mesa, antes de escolher o
+  // produto alguem mexe em outra comanda, o Salao atualiza sozinho, a
+  // limpeza varre tudo e derruba a mesa que acabou de abrir. A folga da
+  // tempo pro primeiro item chegar antes da comanda ser considerada
+  // "esquecida vazia" de verdade. 10s escolhido por nao ter garcom no
+  // celular ainda (só 1 operador no caixa) - risco residual baixo.
   const AGORA = Date.now();
-  const FOLGA_MESA_VAZIA_MS = 60_000;
+  const FOLGA_MESA_VAZIA_MS = 10_000;
   const comandasVazias = (comandasAbertas ?? []).filter(
     (c) =>
       !totalPorComanda.has(c.id) &&

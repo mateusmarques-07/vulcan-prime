@@ -21,8 +21,8 @@ export default async function SalaoPage() {
 
   return (
     <div>
-      {/* so "itens_comanda": watch "mesas"/"comandas" tambem conflita com a liberacao automatica de mesa vazia logo apos abrir */}
-      <RealtimeRefresh tables={["itens_comanda"]} />
+      {/* escuta itens_comanda + mesas/comandas: liberacao automatica de mesa vazia agora tem folga de 10s (ver salao.ts), entao voltar a escutar mesa/comanda e seguro de novo e deixa a mesa liberar sozinha na tela sem precisar de F5 */}
+      <RealtimeRefresh tables={["itens_comanda", "comandas", "mesas"]} />
 
       <div className="mx-auto mb-8 grid max-w-5xl grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
