@@ -44,25 +44,15 @@ export async function getSalaoData() {
   // sozinha - decisao de 20/09/2026, apos teste real. Reaproveita os dados
   // ja buscados acima em vez de fazer consultas extras.
   //
-  // Folga (21/09/2026): sem isso, uma mesa que acabou de ser aberta (ainda
-  // sem o 1o item) podia ser apagada por essa limpeza rodando por causa de
-  // tempo real disparado por QUALQUER outra mesa - o garcom abre a mesa,
-  // antes de escolher o produto alguem mexe em outra comanda, o Salao
-  // atualiza sozinho, a limpeza varre tudo e derruba a mesa que acabou de
-  // abrir. A folga da tempo pro primeiro item chegar antes da comanda ser
-  // considerada "esquecida vazia" de verdade.
-  // REVERTIDO 22/09/2026: chegou a ir pra 10s + Salao escutando
-  // mesas/comandas tambem (nao so itens_comanda), mas isso gerou refresh
-  // demais e bateu rate limit (429) do Supabase em uso real. Voltou pro
-  // estado estavel: 60s, Salao só escuta itens_comanda (mesa vazia só
-  // libera na tela depois de F5 manual, nao mais sozinha ao vivo).
-  const AGORA = Date.now();
-  const FOLGA_MESA_VAZIA_MS = 60_000;
-  const comandasVazias = (comandasAbertas ?? []).filter(
-    (c) =>
-      !totalPorComanda.has(c.id) &&
-      AGORA - new Date(c.aberta_em).getTime() > FOLGA_MESA_VAZIA_MS
-  );
+  // SEM folga de tempo (22/09/2026, pedido do Mateus): a folga de 60s
+  // (depois 10s) existia so por causa do acesso do garcom pelo celular
+  // (tempo real escutando mesas/comandas, que cria a corrida). Enquanto o
+  // atendimento for por comanda de papel (sem garcom no celular), essa
+  // corrida nao existe de verdade - clicou na mesa, nao lancou nada, volta
+  // pro Salao, libera na hora (com F5 manual, ja que so itens_comanda esta
+  // sendo escutado). Se o acesso do garcom pelo celular voltar a ser usado
+  // no futuro, reavaliar se precisa de folga de novo antes de reativar.
+  const comandasVazias = (comandasAbertas ?? []).filter((c) => !totalPorComanda.has(c.id));
   if (comandasVazias.length > 0) {
     await supabase
       .from("comandas")
