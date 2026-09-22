@@ -168,8 +168,14 @@ await page.waitForURL(`${BASE}/`, { timeout: 10000 });
 const mesa8Final = await comandaAbertaDaMesa(8);
 check("limpeza: mesa 8 fechada e livre ao final do teste", mesa8Final === null);
 
-// mesa 9 (gatilho do teste D) ficou vazia e já passou da folga de 10s -
-// confirma que ela também se libera sozinha, sem precisar fechar manual
+// mesa 9 (gatilho do teste D) ficou vazia - o tempo já decorrido entre abri-la
+// e chegar aqui varia (mais rápido em produção que em dev), então força
+// "aberta há 2 minutos" via banco em vez de confiar no relógio de parede,
+// mesmo padrão do teste C, pra não dar alarme falso por timing apertado
+const comanda9 = await comandaAbertaDaMesa(9);
+if (comanda9) {
+  await db.query(`update comandas set aberta_em = now() - interval '2 minutes' where id = $1`, [comanda9.id]);
+}
 await page.goto(`${BASE}/`);
 await page.waitForTimeout(300);
 const mesa9Final = await comandaAbertaDaMesa(9);
