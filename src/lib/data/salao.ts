@@ -44,17 +44,20 @@ export async function getSalaoData() {
   // sozinha - decisao de 20/09/2026, apos teste real. Reaproveita os dados
   // ja buscados acima em vez de fazer consultas extras.
   //
-  // Folga (21/09/2026, reduzida de 60s pra 10s em 22/09/2026): sem isso, uma
-  // mesa que acabou de ser aberta (ainda sem o 1o item) podia ser apagada
-  // por essa limpeza rodando por causa de tempo real disparado por
-  // QUALQUER outra mesa - o garcom abre a mesa, antes de escolher o
-  // produto alguem mexe em outra comanda, o Salao atualiza sozinho, a
-  // limpeza varre tudo e derruba a mesa que acabou de abrir. A folga da
-  // tempo pro primeiro item chegar antes da comanda ser considerada
-  // "esquecida vazia" de verdade. 10s escolhido por nao ter garcom no
-  // celular ainda (só 1 operador no caixa) - risco residual baixo.
+  // Folga (21/09/2026): sem isso, uma mesa que acabou de ser aberta (ainda
+  // sem o 1o item) podia ser apagada por essa limpeza rodando por causa de
+  // tempo real disparado por QUALQUER outra mesa - o garcom abre a mesa,
+  // antes de escolher o produto alguem mexe em outra comanda, o Salao
+  // atualiza sozinho, a limpeza varre tudo e derruba a mesa que acabou de
+  // abrir. A folga da tempo pro primeiro item chegar antes da comanda ser
+  // considerada "esquecida vazia" de verdade.
+  // REVERTIDO 22/09/2026: chegou a ir pra 10s + Salao escutando
+  // mesas/comandas tambem (nao so itens_comanda), mas isso gerou refresh
+  // demais e bateu rate limit (429) do Supabase em uso real. Voltou pro
+  // estado estavel: 60s, Salao só escuta itens_comanda (mesa vazia só
+  // libera na tela depois de F5 manual, nao mais sozinha ao vivo).
   const AGORA = Date.now();
-  const FOLGA_MESA_VAZIA_MS = 10_000;
+  const FOLGA_MESA_VAZIA_MS = 60_000;
   const comandasVazias = (comandasAbertas ?? []).filter(
     (c) =>
       !totalPorComanda.has(c.id) &&
