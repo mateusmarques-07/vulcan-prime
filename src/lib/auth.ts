@@ -12,8 +12,7 @@ export function toAuthEmail(usuario: string) {
 // mudança) continua com acesso total - comportamento de sempre.
 export async function getPapelUsuario(): Promise<"garcom" | "caixa"> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user?.user_metadata?.papel === "garcom" ? "garcom" : "caixa";
+  // getClaims(): mesma validação local do middleware, sem ida ao Supabase Auth
+  const { data } = await supabase.auth.getClaims();
+  return data?.claims?.user_metadata?.papel === "garcom" ? "garcom" : "caixa";
 }

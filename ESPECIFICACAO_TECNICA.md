@@ -1242,3 +1242,26 @@ Primeira tentativa de subir na Vercel deu 404 em todas as rotas. Diagnóstico in
 Mesmo com a causa real identificada como não sendo a versão do Next, o projeto **permanece no Next.js 15.5.25** (não revertido pra 16) — o retest completo já foi feito, e o 15 é mais maduro/comprovado, sem motivo pra voltar.
 
 GitHub conectado ao projeto na Vercel (`vercel git connect`) — todo push na branch `main` a partir de agora dispara deploy automático de produção, sem precisar rodar `vercel deploy` manualmente. Confirmado funcionando (push → build → alias atualizado sozinho).
+
+---
+
+# 43. SISTEMA ENTREGUE AO CLIENTE (01/10/2026)
+
+Apresentação feita no restaurante na noite de 01/10/2026. O cliente aprovou o sistema ("gostaram muito") e **começa a usar de verdade em 02/10/2026**.
+
+**Banco zerado pra estreia** (feito pelo Mateus, pelo SQL Editor do Supabase): todas as comandas, itens, fechamentos, pagamentos e entregas de teste apagados, as 12 mesas livres e a numeração de Entregas reiniciada em #001. Produtos, categorias, formas de pagamento, mesas e logins ficaram como estavam. **A partir de 02/10 o banco tem venda real: não rodar nenhum script de limpeza/reset sem ok explícito.**
+
+**Impressora térmica instalada no notebook do restaurante (Windows, Lenovo):** modelo genérico **POS-8370** (etiqueta "Thermal Receipt Printer", USB + LAN, 80mm, guilhotina, fonte DC 24V 1,5A com plugue DIN de 3 pinos). Ligada por USB, driver oficial Xprinter ("Bill product driver", `Xprinter.receipt.driver.2026.05.12.02.exe`, modelo XP-80, porta USB001, impressora padrão). Papel 80(72.1) x 297mm. A impressão saía clara e ficou boa com **Print Density no 8** (aba Printer Settings das Preferências de impressão). Atalho do sistema criado na área de trabalho pelo Chrome ("Criar atalho", abrindo como janela).
+
+**Prontos no código mas NÃO publicados (aguardando ok do Mateus):**
+- **Velocidade:** `middleware.ts` e `lib/auth.ts` trocam `getUser()` por `getClaims()`. O projeto usa chave ES256, então o login é validado localmente, sem ir ao Supabase Auth a cada tela (antes eram 2 idas por clique). E `getSalaoData()` busca mesas, comandas abertas e recebido do dia em paralelo. Medido antes, em produção: 0,35 a 0,5s por tela. Na versão local, 17 testes de login/permissão (dono, garçom, sem login, senha errada) passaram.
+- **Recibo em negrito:** recibo de mesa e de entrega com letra 13px em negrito, título e total maiores e texto preto puro na impressão. Pode não ser mais necessário, já que a densidade no 8 resolveu.
+
+**Pedidos do cliente na apresentação (em avaliação, nada feito ainda):**
+- Esconder a aba **Entregas** por enquanto: o cliente não vai usar agora. A ideia é deixar o módulo pronto no código e tirar só da tela.
+- **Troco** quando a forma de pagamento for Dinheiro.
+
+**Publicado ainda em 01/10/2026 (com ok do Mateus):** a velocidade, o recibo em negrito e mais dois pedidos do cliente:
+- **Aba Entregas escondida do menu** (`Nav.tsx`, linha comentada). A tela `/entregas`, o banco e o recibo de entrega continuam prontos. Pra voltar, é só descomentar a linha.
+- **Troco no pagamento em Dinheiro** (`FechamentoForm.tsx`): quando o campo Dinheiro tem valor, aparece "Valor recebido em dinheiro", com botões rápidos (Exato, R$ 50, 100, 150 e 200), e o troco em destaque verde. Se o valor recebido for menor que o cobrado, aparece um aviso laranja. **É só informativo:** não grava nada no banco e não bloqueia o "Confirmar pagamento". O financeiro continua registrando o valor cobrado. A forma de pagamento é identificada pelo nome contendo "dinheiro".
+- Testado localmente com o build de produção: 16 testes do troco e do menu, numa página temporária com dados fictícios e com as chamadas à API bloqueadas, e 17 testes de login e permissão.

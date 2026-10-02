@@ -7,7 +7,9 @@ import { usePathname } from "next/navigation";
 const LINKS = [
   { href: "/", label: "Salão" },
   { href: "/produtos", label: "Produtos" },
-  { href: "/entregas", label: "Entregas" },
+  // Entregas escondida do menu (01/10/2026): cliente não vai usar por enquanto.
+  // Tela, banco e recibo continuam prontos - pra voltar, é só descomentar.
+  // { href: "/entregas", label: "Entregas" },
   { href: "/recebimentos", label: "Recebimentos" },
 ];
 

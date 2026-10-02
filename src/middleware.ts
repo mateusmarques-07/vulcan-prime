@@ -42,9 +42,10 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims() valida o login localmente (chave ES256 do projeto), sem ir
+  // ao Supabase Auth a cada tela como o getUser() fazia - 01/10/2026.
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims;
 
   const isLoginPage = request.nextUrl.pathname.startsWith("/login");
 

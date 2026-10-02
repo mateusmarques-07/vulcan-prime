@@ -14,15 +14,22 @@ export type MesaComTotal = {
 export async function getSalaoData() {
   const supabase = await createClient();
 
-  const { data: mesas } = await supabase
-    .from("mesas")
-    .select("id, numero, status, tipo, gorjeta_ativa, gorjeta_pct")
-    .order("numero");
-
-  const { data: comandasAbertas } = await supabase
-    .from("comandas")
-    .select("id, mesa_id, aberta_em")
-    .eq("status", "aberta");
+  // mesas, comandas abertas e recebido hoje não dependem uma da outra -
+  // buscadas em paralelo (01/10/2026)
+  const { inicio, fim } = inicioFimHojeSaoPaulo();
+  const [{ data: mesas }, { data: comandasAbertas }, { data: fechamentosHoje }] =
+    await Promise.all([
+      supabase
+        .from("mesas")
+        .select("id, numero, status, tipo, gorjeta_ativa, gorjeta_pct")
+        .order("numero"),
+      supabase.from("comandas").select("id, mesa_id, aberta_em").eq("status", "aberta"),
+      supabase
+        .from("fechamentos")
+        .select("total")
+        .gte("fechado_em", inicio.toISOString())
+        .lt("fechado_em", fim.toISOString()),
+    ]);
 
   const comandaIds = (comandasAbertas ?? []).map((c) => c.id);
 
@@ -81,13 +88,6 @@ export async function getSalaoData() {
 
   const ocupadas = mesasComTotal.filter((m) => m.status !== "livre").length;
   const emAberto = mesasComTotal.reduce((soma, m) => soma + m.total, 0);
-
-  const { inicio, fim } = inicioFimHojeSaoPaulo();
-  const { data: fechamentosHoje } = await supabase
-    .from("fechamentos")
-    .select("total")
-    .gte("fechado_em", inicio.toISOString())
-    .lt("fechado_em", fim.toISOString());
 
   const recebidoHoje = (fechamentosHoje ?? []).reduce((soma, f) => soma + f.total, 0);
 

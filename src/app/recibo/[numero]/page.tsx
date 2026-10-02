@@ -35,18 +35,20 @@ export default async function ReciboPage({
   const rotulo = rotuloMesa(mesa.tipo, mesa.numero);
 
   return (
-    <div className="mx-auto w-[80mm] bg-white p-2 font-mono text-xs text-black print:w-full">
+    <div className="mx-auto w-[80mm] bg-white p-2 font-mono text-[13px] font-bold text-black print:w-full">
       <style>{`
         @page { margin: 0; }
         @media print {
           html, body { width: 80mm; }
+          /* impressora térmica: texto preto puro, letra fina sai clara (01/10/2026) */
+          * { color: #000 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         }
       `}</style>
 
       <AutoPrint />
 
       <div className="text-center">
-        <p className="text-sm font-bold">VULCAN PRIME</p>
+        <p className="text-base font-bold">VULCAN PRIME</p>
         <p>{rotulo}</p>
         <p>{formatDataHoraSaoPaulo(new Date())}</p>
       </div>
@@ -76,7 +78,7 @@ export default async function ReciboPage({
         </div>
       )}
 
-      <div className="flex justify-between text-sm font-bold">
+      <div className="flex justify-between text-base font-bold">
         <span>Total</span>
         <span>{formatBRL(total)}</span>
       </div>
