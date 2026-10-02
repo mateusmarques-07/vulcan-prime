@@ -36,9 +36,6 @@ export function FechamentoForm({
   );
   const [pessoas, setPessoas] = useState(pessoasInicial ? String(pessoasInicial) : "");
   const [valores, setValores] = useState<Record<string, string>>({});
-  // Troco (01/10/2026): só informativo na tela, não vai pro banco - o
-  // financeiro continua registrando o valor cobrado em Dinheiro.
-  const [recebido, setRecebido] = useState("");
 
   const gorjetaPct = gorjetaAtiva
     ? gorjetaOpcao === "outra"
@@ -48,21 +45,43 @@ export function FechamentoForm({
   const gorjetaValor = round2((subtotal * gorjetaPct) / 100);
   const total = round2(subtotal + gorjetaValor);
 
-  const somaFormas = round2(
-    Object.values(valores).reduce((soma, v) => soma + (Number(v.replace(",", ".")) || 0), 0)
-  );
+  // Troco (01/10/2026, v2): no Dinheiro o caixa digita quanto o cliente
+  // ENTREGOU. O que passar do que falta pagar (depois das outras formas)
+  // vira troco - so aparece na tela; pro banco vai so o valor cobrado.
+  // Troco so existe na forma com "dinheiro" no nome.
+  const valorDe = (id: string) => Number((valores[id] ?? "").replace(",", ".")) || 0;
+  const formaDinheiro = formas.find((forma) => forma.nome.toLowerCase().includes("dinheiro"));
+
+  function calcularPagamento(ignorarFormaId?: string) {
+    const somaOutras = round2(
+      formas
+        .filter((f) => f.id !== formaDinheiro?.id && f.id !== ignorarFormaId)
+        .reduce((soma, f) => soma + valorDe(f.id), 0)
+    );
+    const entregue =
+      formaDinheiro && formaDinheiro.id !== ignorarFormaId ? valorDe(formaDinheiro.id) : 0;
+    const cobrado = round2(Math.min(entregue, Math.max(0, round2(total - somaOutras))));
+    return { somaOutras, entregue, cobrado };
+  }
+
+  const pagamento = calcularPagamento();
+  const dinheiroCobrado = pagamento.cobrado;
+  const troco = round2(pagamento.entregue - dinheiroCobrado);
+  const somaFormas = round2(pagamento.somaOutras + dinheiroCobrado);
   const faltaCobrir = round2(total - somaFormas);
+
+  // "Exato": preenche a forma com o que ainda falta pagar, desconsiderando
+  // o que ja estava digitado nela mesma.
+  function preencherExato(formaId: string) {
+    const semEssa = calcularPagamento(formaId);
+    const resto = Math.max(0, round2(total - semEssa.somaOutras - semEssa.cobrado));
+    setValores((v) => ({ ...v, [formaId]: resto.toFixed(2) }));
+  }
 
   const numPessoas = Number(pessoas) || 0;
   const valorPorPessoa = numPessoas > 0 ? total / numPessoas : null;
 
   const podeConfirmar = Math.abs(faltaCobrir) < 0.005;
-
-  const formaDinheiro = formas.find((forma) => forma.nome.toLowerCase().includes("dinheiro"));
-  const valorDinheiro = formaDinheiro
-    ? Number((valores[formaDinheiro.id] ?? "").replace(",", ".")) || 0
-    : 0;
-  const troco = round2((Number(recebido.replace(",", ".")) || 0) - valorDinheiro);
 
   // Salva gorjeta/pessoas automaticamente (com um pequeno atraso) assim que
   // algum desses campos muda - nao depende de clicar em nenhum botao
@@ -205,83 +224,31 @@ export function FechamentoForm({
         </h3>
         <div className="space-y-2">
           {formas.map((forma) => (
-            <div key={forma.id}>
-              <div className="flex items-center gap-3">
-                <span className="w-28 text-sm text-neutral-300">{forma.nome}</span>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={valores[forma.id] ?? ""}
-                  onChange={(e) => setValores((v) => ({ ...v, [forma.id]: e.target.value }))}
-                  onBlur={() =>
-                    setValores((v) => ({ ...v, [forma.id]: formatarInputMoeda(v[forma.id] ?? "") }))
-                  }
-                  placeholder="R$ 0,00"
-                  className="w-32 rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-1.5 text-white outline-none focus:border-orange-500"
-                />
-              </div>
-
-              {forma.id === formaDinheiro?.id && valorDinheiro > 0 && (
-                <div className="mb-3 mt-2 rounded-lg border border-neutral-700 bg-neutral-950/60 p-3 sm:ml-[7.75rem]">
-                  <label
-                    htmlFor="valor-recebido"
-                    className="block text-xs font-medium uppercase tracking-wide text-neutral-400"
-                  >
-                    Valor recebido em dinheiro
-                  </label>
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <input
-                      id="valor-recebido"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={recebido}
-                      onChange={(e) => setRecebido(e.target.value)}
-                      onBlur={() => setRecebido((r) => formatarInputMoeda(r))}
-                      placeholder="R$ 0,00"
-                      className="w-32 rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-1.5 text-white outline-none focus:border-orange-500"
-                    />
-                    <div className="flex flex-wrap gap-1.5">
-                      {["exato", "50", "100", "150", "200"].map((nota) => (
-                        <button
-                          key={nota}
-                          type="button"
-                          onClick={() =>
-                            setRecebido(nota === "exato" ? valorDinheiro.toFixed(2) : `${nota}.00`)
-                          }
-                          className="rounded-md border border-neutral-700 px-2.5 py-1 text-xs text-neutral-300 hover:border-orange-500 hover:text-orange-400"
-                        >
-                          {nota === "exato" ? "Exato" : `R$ ${nota}`}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="mt-3" aria-live="polite">
-                    {recebido.trim() === "" ? (
-                      <p className="text-sm text-neutral-500">
-                        Digite quanto o cliente entregou pra ver o troco.
-                      </p>
-                    ) : troco < 0 ? (
-                      <p className="text-sm font-medium text-orange-400">
-                        Valor recebido é menor que o cobrado em dinheiro. Faltam{" "}
-                        {formatBRL(-troco)}.
-                      </p>
-                    ) : troco === 0 ? (
-                      <p className="text-sm font-medium text-green-400">Sem troco.</p>
-                    ) : (
-                      <div className="flex items-baseline justify-between rounded-lg border border-green-700 bg-green-950/40 px-4 py-3">
-                        <span className="text-sm font-semibold uppercase tracking-wide text-green-300">
-                          Troco
-                        </span>
-                        <span className="text-3xl font-bold tabular-nums text-green-300">
-                          {formatBRL(troco)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
+            <div key={forma.id} className="flex flex-wrap items-center gap-x-3 gap-y-2">
+              <span className="w-28 text-sm text-neutral-300">{forma.nome}</span>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={valores[forma.id] ?? ""}
+                onChange={(e) => setValores((v) => ({ ...v, [forma.id]: e.target.value }))}
+                onBlur={() =>
+                  setValores((v) => ({ ...v, [forma.id]: formatarInputMoeda(v[forma.id] ?? "") }))
+                }
+                placeholder="R$ 0,00"
+                className="w-32 rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-1.5 text-white outline-none focus:border-orange-500"
+              />
+              <button
+                type="button"
+                onClick={() => preencherExato(forma.id)}
+                className="rounded-md border border-neutral-700 px-2.5 py-1 text-xs text-neutral-300 hover:border-orange-500 hover:text-orange-400"
+              >
+                Exato
+              </button>
+              {forma.id === formaDinheiro?.id && troco > 0 && (
+                <span className="text-base font-bold tabular-nums text-green-400" aria-live="polite">
+                  Troco: {formatBRL(troco)}
+                </span>
               )}
             </div>
           ))}
@@ -296,8 +263,13 @@ export function FechamentoForm({
             ? "Valor cobrado confere com o total."
             : faltaCobrir > 0
               ? `Falta cobrir: ${formatBRL(faltaCobrir)}`
-              : `Valor digitado passa do total em ${formatBRL(-faltaCobrir)}`}
+              : `Valor digitado passa do total em ${formatBRL(-faltaCobrir)}. Só o dinheiro pode ter troco.`}
         </p>
+        {podeConfirmar && troco > 0 && (
+          <p className="mt-1 text-xs text-neutral-500">
+            Vai pro financeiro: {formatBRL(dinheiroCobrado)} em dinheiro (o troco não entra).
+          </p>
+        )}
 
         <form method="POST" action="/api/mesas/encerrar" className="mt-4 flex gap-3">
           <input type="hidden" name="numero" value={numero} />
@@ -309,7 +281,8 @@ export function FechamentoForm({
               key={forma.id}
               type="hidden"
               name={`valor_${forma.id}`}
-              value={valores[forma.id] ?? ""}
+              // no Dinheiro vai so o valor cobrado, nunca o entregue (com troco)
+              value={forma.id === formaDinheiro?.id ? (dinheiroCobrado > 0 ? dinheiroCobrado.toFixed(2) : "") : (valores[forma.id] ?? "")}
             />
           ))}
           <button

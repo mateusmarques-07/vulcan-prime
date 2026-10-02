@@ -22,6 +22,9 @@ export async function getSalaoData() {
       supabase
         .from("mesas")
         .select("id, numero, status, tipo, gorjeta_ativa, gorjeta_pct")
+        .eq("ativa", true)
+        // Balcao e o numero 99 (migration 0014): ordenar por numero ja o
+        // deixa sempre por ultimo, depois da ultima mesa cadastrada
         .order("numero"),
       supabase.from("comandas").select("id, mesa_id, aberta_em").eq("status", "aberta"),
       supabase

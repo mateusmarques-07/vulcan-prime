@@ -1265,3 +1265,22 @@ Apresentação feita no restaurante na noite de 01/10/2026. O cliente aprovou o 
 - **Aba Entregas escondida do menu** (`Nav.tsx`, linha comentada). A tela `/entregas`, o banco e o recibo de entrega continuam prontos. Pra voltar, é só descomentar a linha.
 - **Troco no pagamento em Dinheiro** (`FechamentoForm.tsx`): quando o campo Dinheiro tem valor, aparece "Valor recebido em dinheiro", com botões rápidos (Exato, R$ 50, 100, 150 e 200), e o troco em destaque verde. Se o valor recebido for menor que o cobrado, aparece um aviso laranja. **É só informativo:** não grava nada no banco e não bloqueia o "Confirmar pagamento". O financeiro continua registrando o valor cobrado. A forma de pagamento é identificada pelo nome contendo "dinheiro".
 - Testado localmente com o build de produção: 16 testes do troco e do menu, numa página temporária com dados fictícios e com as chamadas à API bloqueadas, e 17 testes de login e permissão.
+
+---
+
+# 44. TROCO V2 + CADASTRO DE MESAS (01/10/2026, noite)
+
+**Troco v2:** o Mateus testou o troco do commit `08b9f23` e achou confuso, porque era preciso digitar o valor no Dinheiro e depois em outro campo, que só aparecia em seguida. Ficou assim:
+- **Um campo só no Dinheiro**, onde o caixa digita **quanto o cliente entregou**. O sistema calcula o que falta pagar depois das outras formas. O que passar disso vira **troco**, mostrado na mesma linha ("Troco: R$ X", em verde).
+- **Pro banco vai só o valor cobrado** no dinheiro (hidden `valor_<id>` = `dinheiroCobrado`). A rota `/api/mesas/encerrar` não mudou: continua exigindo que a soma das formas seja igual ao total.
+- **Botão "Exato" em todas as formas**, inclusive as criadas depois (é gerado na lista de formas). Ele preenche com o que falta, desconsiderando o valor já digitado naquela forma.
+- **Troco só na forma com "dinheiro" no nome.** Cartão, Pix ou outra forma passando do total mostram o aviso "Só o dinheiro pode ter troco" e o Confirmar fica bloqueado.
+- Saíram o bloco "Valor recebido" e os botões de R$ 50, 100, 150 e 200.
+
+**Cadastro de mesas** (Configurações → Mesas):
+- **"+ Nova mesa"** cria a próxima da sequência (`/api/mesas/criar`). Se essa mesa já existiu e foi removida, ela é reativada, porque o número é único na tabela.
+- **"Remover"** atua sempre na **última** mesa, só se ela estiver livre e sem comanda aberta, e o Salão precisa ficar com pelo menos 1 mesa (`/api/mesas/remover`). A mesa **não é apagada**: fica com `ativa = false`, porque `comandas.mesa_id` aponta pra ela.
+- **Migration 0014:** coluna `mesas.ativa`. O **Balcão passou do número 12 pro 99**, liberando a sequência e ficando sempre por último no Salão, que ordena por número e filtra `ativa`. A função `abrir_mesa` agora recusa mesa desativada. Recebimentos não é afetado, porque `fechamentos.tipo` é gravado na própria conta.
+- O garçom não acessa a tela nem as rotas novas (o middleware já bloqueia tudo que não está na lista dele).
+
+**Testes:** 15 casos do troco, numa página temporária com dados fictícios, 4 formas (incluindo "Vale Refeição") e a API bloqueada. 14 testes de mesas, gravando no banco com autorização do Mateus e voltando ao estado original de 11 mesas + Balcão. Mais 17 testes de login e permissão.

@@ -19,6 +19,13 @@ export default async function ConfiguracoesPage({
         Formas de pagamento →
       </Link>
 
+      <Link
+        href="/configuracoes/mesas"
+        className="mb-6 block rounded-xl border border-neutral-800 bg-neutral-900 p-4 text-sm font-medium text-neutral-200 transition hover:border-orange-500 hover:text-orange-500"
+      >
+        Mesas →
+      </Link>
+
       <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-5">
         <h2 className="mb-4 text-sm font-semibold text-neutral-200">Alterar senha</h2>
 
