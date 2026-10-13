@@ -1284,3 +1284,45 @@ Apresentação feita no restaurante na noite de 01/10/2026. O cliente aprovou o 
 - O garçom não acessa a tela nem as rotas novas (o middleware já bloqueia tudo que não está na lista dele).
 
 **Testes:** 15 casos do troco, numa página temporária com dados fictícios, 4 formas (incluindo "Vale Refeição") e a API bloqueada. 14 testes de mesas, gravando no banco com autorização do Mateus e voltando ao estado original de 11 mesas + Balcão. Mais 17 testes de login e permissão.
+
+---
+
+# 45. CARDÁPIO 13/10 (RODÍZIO + EXECUTIVOS) E ENVIO PRA COZINHA (13/10/2026)
+
+**Contexto:** a pré-abertura rodou até 13/10 e a abertura de verdade é na **sexta, 16/10**. O cardápio mudou (`cardapio/cardápio.pdf`): agora tem rodízio e almoço executivo. A cliente também pediu para imprimir o pedido da cozinha **durante** o atendimento, e não só ao fechar a conta.
+
+**Banco zerado (pedido do Mateus):** antes, foi feito um backup completo em `/root/backups/vulcan/vulcan-2026-10-13-antes-cardapio-novo.dump` (pg_dump via Docker `postgres:17`, só o schema public). Depois rodaram `limpar-banco-teste.mjs` e `resetar-numeracao-entregas.mjs`. Ficaram: mesas (11 + Balcão 99), logins e formas de pagamento.
+
+**Cardápio (migration 0015):** o cardápio antigo foi apagado. Entraram **11 categorias e 43 itens**, na ordem do PDF:
+- **Rodízio:** Rodízio R$ 49,90 e Rodízio infantil (até 12 anos) R$ 24,95. É meia exata, decidida pelo Mateus. Inclui espetos à vontade e 1 acompanhamento servido uma vez.
+- **Vulcan Executivos:** 4 pratos, cada um acompanha 4 adicionais à escolha.
+- **Espetos Defumados, Vulcan Burgers, Porções, Adicionais, Bebidas, Chopp, Cervejas, Drinks e Sobremesa.**
+- Os burgers são combo, com a descrição "Combo: acompanha batata e refri. ...".
+- Para não confundir na comanda e na cozinha, os nomes ficaram "Porção de Arroz" (Porções, R$ 8) e "Arroz (adicional)" (Adicionais, R$ 4,90). Todo adicional leva o sufixo "(adicional)".
+
+**Configurações novas da categoria** (tela Produtos → Categorias):
+- `vai_cozinha`: o item sai no papel da cozinha. As bebidas (Bebidas, Chopp, Cervejas, Drinks) ficam desmarcadas, porque o garçom pega direto. Esse é o "jeito A". A ideia é virar setor (cozinha/bar) no futuro (jeitos B/C: 2 papéis ou 2 impressoras).
+- `qtd_acompanhamentos`: ao lançar, abre um popup para escolher N acompanhamentos (Executivos = 4, Rodízio = 1).
+- `lista_acompanhamentos`: os produtos da categoria viram os botões do popup (Adicionais), sem o sufixo "(adicional)".
+
+**Item da comanda** ganhou `vai_cozinha` (cópia da categoria no lançamento), `acompanhamentos` (texto do popup) e `enviado_cozinha_em` (null = pendente). Todos os itens de um mesmo envio ficam com o mesmo horário. É assim que "Reimprimir último envio" e o "2º pedido da mesa" funcionam, sem precisar de tabela nova.
+
+**Funções no banco:**
+- `lancar_produto_comanda(comanda, produto, acompanhamentos default null)`: só soma na mesma linha se ela não foi enviada e não tem acompanhamento nem observação.
+- `ajustar_quantidade_item`: o "+" num item já enviado cria (ou soma numa) linha nova pendente, com o mesmo produto, acompanhamento e observação.
+- `enviar_cozinha(comanda)`: marca os pendentes com `now()` e devolve esse horário.
+
+**Fluxo na tela:**
+- Comanda: o botão **"Enviar para cozinha (N)"** conta só comida pendente. Quando não há pendências, ele mostra "Cozinha em dia" e fica desabilitado.
+  - O envio vai para `/api/cozinha/enviar` e depois para `/cozinha/[numero]?em=`, que imprime sozinho e, no `afterprint`, volta para a comanda.
+  - O papel da cozinha tem 80mm, sem preço e em maiúsculas. Os acompanhamentos ("Acomp:") e a observação ("OBS:") ficam em linhas separadas.
+- Selos nos itens: 🟠 "Não enviado" ou ✅ "Cozinha HH:MM". Bebida não ganha selo.
+- "−" e "Remover" num item já enviado pedem confirmação (`BotaoConfirmar`): "avise a cozinha".
+- **Fechar conta com comida pendente** vai para `?aviso=cozinha`, que mostra um modal com 3 opções: "Enviar pra cozinha agora", "Fechar conta mesmo assim" (`confirmado=1`) ou "Voltar".
+- O card da mesa no Salão mostra "N p/ cozinha".
+- O recibo do cliente e o fechamento **não mudaram**.
+- O garçom (papel `garcom`, hoje sem uso) não vê o botão de envio.
+
+**Testes:** `scripts/teste-cozinha-rodizio.mjs` tem 23 verificações e aceita `BASE_URL`. Passou 23/23 no localhost e 23/23 em produção. Os prints estão em `previews/36` a `42`. O banco foi limpo de novo depois dos testes. Commit `5c6b5d2`, deploy Vercel Ready.
+
+**Não feito (opcional, ficou para depois):** aviso de rodízio lançado fora do horário 18h às 22h. Os scripts antigos de regressão (`revisao-etapa9.mjs`, `revisao-entregas.mjs`, `smoke-test-*.mjs`) continuam citando produtos antigos e não servem sem atualizar os nomes.
