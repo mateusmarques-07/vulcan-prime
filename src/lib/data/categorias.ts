@@ -4,6 +4,9 @@ export type Categoria = {
   id: string;
   nome: string;
   ordem: number;
+  vai_cozinha: boolean;
+  qtd_acompanhamentos: number;
+  lista_acompanhamentos: boolean;
   totalProdutos: number;
 };
 
@@ -12,7 +15,7 @@ export async function getCategorias(): Promise<Categoria[]> {
 
   const { data: categorias } = await supabase
     .from("categorias")
-    .select("id, nome, ordem")
+    .select("id, nome, ordem, vai_cozinha, qtd_acompanhamentos, lista_acompanhamentos")
     .order("ordem");
 
   const { data: produtos } = await supabase.from("produtos").select("categoria_id");

@@ -11,7 +11,7 @@ export default async function CategoriasPage({
   const categorias = await getCategorias();
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-4xl">
       <Link href="/produtos" className="text-sm text-neutral-400 hover:text-orange-500">
         ← Produtos
       </Link>
@@ -23,13 +23,13 @@ export default async function CategoriasPage({
             key={categoria.id}
             className="flex items-center gap-2 rounded-xl border border-neutral-800 bg-neutral-900 p-3"
           >
-            <form method="POST" action="/api/categorias/editar" className="flex flex-1 items-center gap-2">
+            <form method="POST" action="/api/categorias/editar" className="flex flex-1 flex-wrap items-center gap-2">
               <input type="hidden" name="id" value={categoria.id} />
               <input
                 type="text"
                 name="nome"
                 defaultValue={categoria.nome}
-                className="flex-1 rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-1.5 text-white outline-none focus:border-orange-500"
+                className="min-w-[10rem] flex-1 rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-1.5 text-white outline-none focus:border-orange-500"
               />
               <input
                 type="number"
@@ -37,6 +37,11 @@ export default async function CategoriasPage({
                 defaultValue={categoria.ordem}
                 title="Ordem de exibição"
                 className="w-16 rounded-lg border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-center text-white outline-none focus:border-orange-500"
+              />
+              <ConfigCozinha
+                vaiCozinha={categoria.vai_cozinha}
+                qtdAcompanhamentos={categoria.qtd_acompanhamentos}
+                listaAcompanhamentos={categoria.lista_acompanhamentos}
               />
               <button
                 type="submit"
@@ -62,7 +67,7 @@ export default async function CategoriasPage({
 
       <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
         <h2 className="mb-3 text-sm font-semibold text-neutral-200">Nova categoria</h2>
-        <form method="POST" action="/api/categorias/criar" className="flex items-center gap-2">
+        <form method="POST" action="/api/categorias/criar" className="flex flex-wrap items-center gap-2">
           <input
             type="text"
             name="nome"
@@ -77,6 +82,7 @@ export default async function CategoriasPage({
             defaultValue={categorias.length + 1}
             className="w-20 rounded-lg border border-neutral-700 bg-neutral-800 px-2 py-2 text-center text-white outline-none focus:border-orange-500"
           />
+          <ConfigCozinha vaiCozinha qtdAcompanhamentos={0} listaAcompanhamentos={false} />
           <button
             type="submit"
             className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-500"
@@ -86,7 +92,51 @@ export default async function CategoriasPage({
         </form>
       </div>
 
+      <div className="mt-4 rounded-xl border border-neutral-800 bg-neutral-900/50 p-4 text-xs text-neutral-400">
+        <p><b className="text-neutral-200">Cozinha:</b> itens dessa categoria saem no papel da cozinha (bebida: desmarcado).</p>
+        <p><b className="text-neutral-200">Acomp.:</b> quantos acompanhamentos escolher ao lançar (0 = não pergunta).</p>
+        <p><b className="text-neutral-200">É lista de acomp.:</b> os produtos dessa categoria viram os botões de escolha.</p>
+      </div>
+
       <ErrorModal mensagem={erro} voltarHref="/produtos/categorias" />
+    </div>
+  );
+}
+
+function ConfigCozinha({
+  vaiCozinha,
+  qtdAcompanhamentos,
+  listaAcompanhamentos,
+}: {
+  vaiCozinha: boolean;
+  qtdAcompanhamentos: number;
+  listaAcompanhamentos: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-3 text-xs text-neutral-300">
+      <label className="flex items-center gap-1" title="Itens dessa categoria saem no papel da cozinha">
+        <input type="checkbox" name="vai_cozinha" defaultChecked={vaiCozinha} className="accent-orange-500" />
+        Cozinha
+      </label>
+      <label className="flex items-center gap-1" title="Quantos acompanhamentos escolher ao lançar (0 = não pergunta)">
+        Acomp.
+        <input
+          type="number"
+          name="qtd_acompanhamentos"
+          min={0}
+          defaultValue={qtdAcompanhamentos}
+          className="w-12 rounded-lg border border-neutral-700 bg-neutral-800 px-1 py-1 text-center text-white outline-none focus:border-orange-500"
+        />
+      </label>
+      <label className="flex items-center gap-1" title="Os produtos dessa categoria viram os botões de acompanhamento">
+        <input
+          type="checkbox"
+          name="lista_acompanhamentos"
+          defaultChecked={listaAcompanhamentos}
+          className="accent-orange-500"
+        />
+        É lista de acomp.
+      </label>
     </div>
   );
 }

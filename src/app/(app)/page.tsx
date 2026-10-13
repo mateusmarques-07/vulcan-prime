@@ -52,6 +52,11 @@ export default async function SalaoPage() {
               {mesa.status !== "livre" && (
                 <span className="text-base font-semibold">{formatBRL(mesa.total)}</span>
               )}
+              {mesa.pendentesCozinha > 0 && (
+                <span className="rounded-full bg-amber-500 px-2 py-0.5 text-xs font-bold text-black">
+                  {mesa.pendentesCozinha} p/ cozinha
+                </span>
+              )}
             </>
           );
 

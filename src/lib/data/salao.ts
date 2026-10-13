@@ -9,6 +9,8 @@ export type MesaComTotal = {
   status: "livre" | "ocupada" | "conta";
   tipo: TipoMesa;
   total: number;
+  // comida lancada que ainda nao foi pro papel da cozinha (13/10/2026)
+  pendentesCozinha: number;
 };
 
 export async function getSalaoData() {
@@ -40,14 +42,21 @@ export async function getSalaoData() {
     comandaIds.length > 0
       ? await supabase
           .from("itens_comanda")
-          .select("comanda_id, preco_unit, quantidade")
+          .select("comanda_id, preco_unit, quantidade, vai_cozinha, enviado_cozinha_em")
           .in("comanda_id", comandaIds)
       : { data: [] };
 
   const totalPorComanda = new Map<string, number>();
+  const pendentesPorComanda = new Map<string, number>();
   for (const item of itens ?? []) {
     const atual = totalPorComanda.get(item.comanda_id) ?? 0;
     totalPorComanda.set(item.comanda_id, atual + item.preco_unit * item.quantidade);
+    if (item.vai_cozinha && !item.enviado_cozinha_em) {
+      pendentesPorComanda.set(
+        item.comanda_id,
+        (pendentesPorComanda.get(item.comanda_id) ?? 0) + item.quantidade
+      );
+    }
   }
 
   // Mesa aberta sem nenhum item (abriu por engano e nao lancou nada) libera
@@ -76,17 +85,23 @@ export async function getSalaoData() {
   const mesaIdsLiberadas = new Set(comandasVazias.map((c) => c.mesa_id));
 
   const subtotalPorMesa = new Map<string, number>();
+  const pendentesPorMesa = new Map<string, number>();
   for (const comanda of comandasAbertas ?? []) {
     subtotalPorMesa.set(comanda.mesa_id, totalPorComanda.get(comanda.id) ?? 0);
+    pendentesPorMesa.set(comanda.mesa_id, pendentesPorComanda.get(comanda.id) ?? 0);
   }
 
   const mesasComTotal: MesaComTotal[] = (mesas ?? []).map((mesa) => {
     if (mesaIdsLiberadas.has(mesa.id)) {
-      return { ...mesa, status: "livre" as const, total: 0 };
+      return { ...mesa, status: "livre" as const, total: 0, pendentesCozinha: 0 };
     }
     const subtotal = subtotalPorMesa.get(mesa.id) ?? 0;
     const gorjeta = mesa.gorjeta_ativa ? round2((subtotal * mesa.gorjeta_pct) / 100) : 0;
-    return { ...mesa, total: round2(subtotal + gorjeta) };
+    return {
+      ...mesa,
+      total: round2(subtotal + gorjeta),
+      pendentesCozinha: pendentesPorMesa.get(mesa.id) ?? 0,
+    };
   });
 
   const ocupadas = mesasComTotal.filter((m) => m.status !== "livre").length;
