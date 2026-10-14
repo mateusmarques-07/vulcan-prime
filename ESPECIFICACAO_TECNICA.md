@@ -1326,3 +1326,13 @@ Apresentação feita no restaurante na noite de 01/10/2026. O cliente aprovou o 
 **Testes:** `scripts/teste-cozinha-rodizio.mjs` tem 23 verificações e aceita `BASE_URL`. Passou 23/23 no localhost e 23/23 em produção. Os prints estão em `previews/36` a `42`. O banco foi limpo de novo depois dos testes. Commit `5c6b5d2`, deploy Vercel Ready.
 
 **Não feito (opcional, ficou para depois):** aviso de rodízio lançado fora do horário 18h às 22h. Os scripts antigos de regressão (`revisao-etapa9.mjs`, `revisao-entregas.mjs`, `smoke-test-*.mjs`) continuam citando produtos antigos e não servem sem atualizar os nomes.
+
+**Ajustes depois do teste do Mateus (13/10, noite, commit `1e3acb8`):**
+- **A observação se perdia:** ele digitou "mal passada" e clicou direto em "Enviar para cozinha", sem clicar em Salvar. No banco, a observação ficou null. Agora:
+  - O campo (`ObservacaoItem.tsx`) **grava sozinho ao sair do campo**, por fetch silencioso (`silencioso=1` faz a rota devolver 204). Aparece "✓ salvo".
+  - Os botões Enviar e Fechar conta, inclusive os do modal de aviso, usam `FormComObservacoes`. Ele leva junto, como `obs_<itemId>`, toda observação digitada e diferente da salva. As rotas gravam antes de seguir (`lib/observacoes.ts`).
+- **O popup de acompanhamentos exige pelo menos 1 escolha.** Um botão ou o campo "Outro" já basta. Não exige a quantidade exata, para o caso de o cliente querer menos.
+- **O botão se chama sempre "Enviar para cozinha"** e fica cinza quando não há pendência. Antes ele mostrava "Cozinha em dia", que confundia.
+- O papel da cozinha continua abrindo **na mesma aba** (decisão confirmada). A configuração da impressora é do Chrome, não da aba. Se a impressão for cancelada, usar "Reimprimir último envio".
+- Novo `scripts/limpar-mesas-teste.mjs 5 6 99`: limpa **só** as mesas informadas, para testar sem apagar o que outra pessoa está usando. O teste aceita `MESA_A`/`MESA_B`.
+- Testes: 27/27 local e 27/27 em produção, nas mesas 5 e 6. Depois disso, o banco foi zerado por completo.
