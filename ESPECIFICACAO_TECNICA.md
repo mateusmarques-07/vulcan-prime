@@ -1336,3 +1336,12 @@ Apresentação feita no restaurante na noite de 01/10/2026. O cliente aprovou o 
 - O papel da cozinha continua abrindo **na mesma aba** (decisão confirmada). A configuração da impressora é do Chrome, não da aba. Se a impressão for cancelada, usar "Reimprimir último envio".
 - Novo `scripts/limpar-mesas-teste.mjs 5 6 99`: limpa **só** as mesas informadas, para testar sem apagar o que outra pessoa está usando. O teste aceita `MESA_A`/`MESA_B`.
 - Testes: 27/27 local e 27/27 em produção, nas mesas 5 e 6. Depois disso, o banco foi zerado por completo.
+
+**Fechamento do dia (13/10/2026, noite):**
+- O Mateus **gravou o vídeo de explicação para o cliente**. O cliente testa em 14/10, e a abertura de verdade é na sexta, 16/10.
+- O banco foi **zerado de novo** depois do vídeo (2 contas e 9 itens de teste apagados): 0 comandas, contas, recebimentos e entregas; 12 mesas livres (11 + Balcão), numeração de Entregas em #001. Ficaram 43 produtos, 11 categorias e 3 formas de pagamento.
+- **Usuários conferidos** (login testado de verdade, senha `123456` nos 3). A tela de login completa `@vulcanprime.local` sozinha.
+  - `matheus.marques`: acesso total
+  - `vulcan.prime`: acesso total (login do restaurante)
+  - `garcom.vulcan`: papel garçom (só Salão e Comanda, sem fechar conta nem enviar pra cozinha). Hoje não é usado, porque o atendimento é por comanda de papel.
+- Recomendado: trocar a senha `123456` dos logins de acesso total antes da abertura (`node scripts/criar-usuario.mjs <usuario> <senha nova>`, ou Configurações → Alterar senha).
