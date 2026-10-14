@@ -207,7 +207,9 @@ function PopupAcompanhamentos({
           </button>
           <button
             type="submit"
-            className="rounded-lg bg-orange-600 px-5 py-2 text-sm font-semibold text-white hover:bg-orange-500"
+            disabled={!texto}
+            title={texto ? undefined : "Escolha pelo menos 1 acompanhamento"}
+            className="rounded-lg bg-orange-600 px-5 py-2 text-sm font-semibold text-white hover:bg-orange-500 disabled:cursor-not-allowed disabled:bg-neutral-800 disabled:text-neutral-500"
           >
             Confirmar
           </button>

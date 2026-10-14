@@ -14,5 +14,10 @@ export async function POST(request: Request) {
     .update({ observacao: observacao || null })
     .eq("id", itemId);
 
+  // gravacao automatica ao sair do campo (fetch): nao precisa recarregar a tela
+  if (formData.get("silencioso") === "1") {
+    return new Response(null, { status: 204 });
+  }
+
   return NextResponse.redirect(redirectUrl(`/mesa/${numero}`, request), 303);
 }

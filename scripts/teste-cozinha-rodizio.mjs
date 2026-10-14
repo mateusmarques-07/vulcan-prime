@@ -6,6 +6,12 @@
 import { chromium } from "playwright";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3700";
+// mesas usadas no teste (MESA_A/MESA_B), pra nao esbarrar em quem estiver
+// usando o sistema ao mesmo tempo (o banco e o mesmo da producao)
+const MA = Number(process.env.MESA_A ?? 1);
+const MB = Number(process.env.MESA_B ?? 2);
+const ROT_A = `MESA ${String(MA).padStart(2, "0")}`;
+const LABEL_A = `Mesa ${String(MA).padStart(2, "0")}`;
 const PRINTS = new URL("../previews/", import.meta.url).pathname;
 let ok = 0;
 let fail = 0;
@@ -79,10 +85,11 @@ await page.waitForURL(`${BASE}/`, { timeout: 15000 });
 
 // 1. salao zerado
 const livres = await page.locator("text=Livre").count();
-check(`1. salao com todas as mesas livres (${livres})`, livres >= 12);
+const ocupadasTeste = await page.locator("a").filter({ hasText: new RegExp(`${LABEL_A}|Balcão`) }).count();
+check(`1. mesas do teste livres (${livres} livres no salão)`, livres >= 3 && ocupadasTeste === 0);
 
 // 2. cardapio novo: 11 categorias na ordem do cardapio
-await abrirMesa(1);
+await abrirMesa(MA);
 const categorias = await page.locator("nav button").allInnerTexts();
 const esperado = [
   "Rodízio", "Vulcan Executivos", "Espetos Defumados", "Vulcan Burgers", "Porções",
@@ -114,7 +121,7 @@ const contador = await popup.locator("text=4 de 4").isVisible();
 check("4b. depois de 4 escolhas, o 5º botão trava e mostra 4 de 4", legumesTravado && contador);
 await page.screenshot({ path: `${PRINTS}36-popup-executivo.png` });
 await popup.locator('button:has-text("Confirmar")').click();
-await page.waitForURL(/\/mesa\/1/);
+await page.waitForURL(new RegExp(`/mesa/${MA}`));
 await esperar();
 const itemBife = page.locator("li", { hasText: "Bife Ancho" });
 check(
@@ -130,7 +137,7 @@ await popupR.locator("button", { hasText: /^Arroz$/ }).click();
 await popupR.locator("button", { hasText: /^Legumes$/ }).click();
 const umSo = await popupR.locator("text=1 de 1").isVisible();
 await popupR.locator('button:has-text("Confirmar")').click();
-await page.waitForURL(/\/mesa\/1/);
+await page.waitForURL(new RegExp(`/mesa/${MA}`));
 await esperar();
 check("5. Rodízio aceita 1 acompanhamento (troca ao clicar outro)",
   umSo && (await page.locator("li", { hasText: "Rodízio" }).innerText()).includes("Acomp: Legumes"));
@@ -150,18 +157,18 @@ const botaoTxt = await page.locator('button:has-text("Enviar para cozinha")').in
 await page.screenshot({ path: `${PRINTS}37-comanda-pendente.png`, fullPage: true });
 await page.goto(`${BASE}/`);
 await esperar();
-const cardMesa1 = await page.locator("form, a").filter({ hasText: "Mesa 01" }).first().innerText();
+const cardMesa1 = await page.locator("form, a").filter({ hasText: LABEL_A }).first().innerText();
 check(`7. botão "${botaoTxt}" e Salão com "2 p/ cozinha"`,
   botaoTxt.includes("(2)") && cardMesa1.includes("2 p/ cozinha"));
 await page.screenshot({ path: `${PRINTS}38-salao-pendente.png` });
 
 // 8. envio: papel da cozinha so com comida, sem preco
-await page.goto(`${BASE}/mesa/1`);
+await page.goto(`${BASE}/mesa/${MA}`);
 await esperar();
 await enviarCozinha();
 const papel1 = await page.locator("body").innerText();
-check("8a. papel da cozinha: Mesa 01, Bife com acomp, Rodízio com acomp",
-  papel1.includes("COZINHA - MESA 01") &&
+check("8a. papel da cozinha: mesa do teste, Bife com acomp, Rodízio com acomp",
+  papel1.includes(`COZINHA - ${ROT_A}`) &&
     papel1.includes("1X BIFE ANCHO") &&
     papel1.includes("Acomp: Arroz, Feijão, Purê de batata, Salada") &&
     papel1.includes("Acomp: Legumes"));
@@ -170,11 +177,11 @@ check("8b. papel da cozinha sem bebida e sem preço",
 await page.screenshot({ path: `${PRINTS}39-papel-cozinha.png` });
 
 // 9. voltou: selos verdes, botao "Cozinha em dia", reimprimir aparece
-await page.goto(`${BASE}/mesa/1`);
+await page.goto(`${BASE}/mesa/${MA}`);
 await esperar();
 const comandaTxt = await page.locator("body").innerText();
-const emDia = await page.locator('button:has-text("Cozinha em dia")').isDisabled();
-check("9. itens com ✅ Cozinha, botão 'Cozinha em dia' e 'Reimprimir' visível",
+const emDia = await page.locator('button:has-text("Enviar para cozinha")').first().isDisabled();
+check("9. itens com ✅ Cozinha, botão 'Enviar para cozinha' cinza e 'Reimprimir' visível",
   (comandaTxt.match(/✅ Cozinha/g) ?? []).length === 2 &&
     emDia &&
     (await page.locator("text=Reimprimir último envio").isVisible()));
@@ -182,12 +189,12 @@ check("9. itens com ✅ Cozinha, botão 'Cozinha em dia' e 'Reimprimir' visível
 // 10. mesa continua ocupada depois do envio
 await page.goto(`${BASE}/`);
 await esperar();
-const cardDepois = await page.locator("a").filter({ hasText: "Mesa 01" }).first().innerText();
-check("10. Mesa 01 continua Ocupada e sem pendência no Salão",
+const cardDepois = await page.locator("a").filter({ hasText: LABEL_A }).first().innerText();
+check("10. mesa do teste continua Ocupada e sem pendência no Salão",
   cardDepois.includes("Ocupada") && !cardDepois.includes("p/ cozinha"));
 
 // 11. "+" em item ja enviado cria linha nova pendente; 2o envio leva so ela
-await page.goto(`${BASE}/mesa/1`);
+await page.goto(`${BASE}/mesa/${MA}`);
 await esperar();
 await page.locator("li", { hasText: "Bife Ancho" }).locator('button:has-text("+")').click();
 await esperar();
@@ -209,16 +216,16 @@ check("11b. 2º envio: só o Bife novo + Espeto com OBS, marcado '2º pedido'",
 await page.screenshot({ path: `${PRINTS}40-papel-cozinha-2.png` });
 
 // 12. reimprimir mostra o ultimo envio
-await page.goto(`${BASE}/mesa/1`);
+await page.goto(`${BASE}/mesa/${MA}`);
 await esperar();
 await page.locator("text=Reimprimir último envio").click();
-await page.waitForURL(/\/cozinha\/1\?em=/);
+await page.waitForURL(new RegExp(`/cozinha/${MA}\\?em=`));
 await esperar();
 const reimpresso = await page.locator("body").innerText();
 check("12. Reimprimir traz o 2º envio de novo", reimpresso.includes("ESPETO DE CARNE") && !reimpresso.includes("RODÍZIO"));
 
 // 13. remover item enviado pede confirmacao
-await page.goto(`${BASE}/mesa/1`);
+await page.goto(`${BASE}/mesa/${MA}`);
 await esperar();
 let perguntou = "";
 page.once("dialog", (d) => { perguntou = d.message(); d.dismiss(); });
@@ -246,15 +253,16 @@ check("14. Fechar conta com Pudim pendente mostra o aviso", aviso);
 // 15. "Enviar pra cozinha agora" a partir do aviso, depois volta sozinho (afterprint)
 await page.evaluate(() => localStorage.setItem("simularImpressao", "1"));
 await page.locator('button:has-text("Enviar pra cozinha agora")').click();
-await page.waitForURL(`${BASE}/mesa/1`, { timeout: 10000 });
+await page.waitForURL(`${BASE}/mesa/${MA}`, { timeout: 10000 });
 await esperar();
 check("15. envio pelo aviso imprime e volta sozinho pra comanda",
-  await page.locator('button:has-text("Cozinha em dia")').isVisible());
+  (await page.locator('button:has-text("Enviar para cozinha")').first().isDisabled()) &&
+    !(await page.locator("text=Tem comida que não foi pra cozinha").isVisible()));
 await page.evaluate(() => localStorage.removeItem("simularImpressao"));
 
 // 16. fechar conta sem pendencia vai direto; recibo tem tudo com preco
 await page.locator('button:has-text("Fechar conta")').first().click();
-await page.waitForURL(`${BASE}/mesa/1/fechamento`);
+await page.waitForURL(`${BASE}/mesa/${MA}/fechamento`);
 await esperar();
 const [recibo] = await Promise.all([
   context.waitForEvent("page"),
@@ -272,8 +280,8 @@ await page.locator('button:has-text("Exato")').first().click();
 await page.locator('button:has-text("Confirmar pagamento")').click();
 await page.waitForURL(`${BASE}/`, { timeout: 10000 });
 await esperar();
-const mesa1Livre = await page.locator("form", { hasText: "Mesa 01" }).first().innerText();
-check("17. pagamento confirmado: Mesa 01 volta a Livre", mesa1Livre.includes("Livre"));
+const mesa1Livre = await page.locator("form", { hasText: LABEL_A }).first().innerText();
+check("17. pagamento confirmado: mesa do teste volta a Livre", mesa1Livre.includes("Livre"));
 
 // 18. balcao tambem envia pra cozinha
 await abrirMesa(99);
@@ -294,6 +302,60 @@ check("19. Categorias: Executivos com 4 acomp. e cozinha; Bebidas sem cozinha",
     (await linhaExec.locator('input[name="vai_cozinha"]').isChecked()) &&
     !(await linhaBebidas.locator('input[name="vai_cozinha"]').isChecked()));
 await page.screenshot({ path: `${PRINTS}42-categorias-config.png`, fullPage: true });
+
+// ---- correcoes de 13/10 noite (teste do Mateus) ----
+
+// 20. popup nao confirma sem nenhum acompanhamento; "Outro" sozinho vale
+await abrirMesa(MB);
+await lancar("Vulcan Executivos", "Frango grelhado");
+const popupVazio = page.locator("div.fixed", { hasText: "Escolha 4 acompanhamentos" });
+const travadoVazio = await popupVazio.locator('button:has-text("Confirmar")').isDisabled();
+await popupVazio.locator('input[placeholder^="Outro"]').fill("só salada");
+const liberadoOutro = await popupVazio.locator('button:has-text("Confirmar")').isEnabled();
+await popupVazio.locator('button:has-text("Confirmar")').click();
+await page.waitForURL(new RegExp(`/mesa/${MB}`));
+await esperar();
+check("20. Confirmar travado sem escolha; 'Outro' sozinho libera",
+  travadoVazio && liberadoOutro &&
+    (await page.locator("li", { hasText: "Frango grelhado" }).innerText()).includes("Acomp: só salada"));
+
+// 21. caso real do Mateus: digita "mal passada" e clica Enviar SEM Salvar
+await lancar("Vulcan Burgers", "Vulcan Original");
+await esperar();
+await page.locator("li", { hasText: "Vulcan Original" }).locator('input[name="observacao"]').fill("mal passada");
+await enviarCozinha();
+const papelObs = await page.locator("body").innerText();
+check("21. obs digitada sem clicar Salvar sai no papel (OBS: mal passada)",
+  papelObs.includes("1X VULCAN ORIGINAL") && papelObs.includes("OBS: mal passada"));
+
+// 22. obs grava sozinha ao sair do campo (sem Salvar), continua depois do F5
+await page.goto(`${BASE}/mesa/${MB}`);
+await esperar();
+await lancar("Porções", "Batata Prime");
+await esperar();
+await page.locator("li", { hasText: "Batata Prime" }).locator('input[name="observacao"]').fill("sem bacon");
+await page.locator("h2", { hasText: "Itens da comanda" }).click();
+await page.locator("text=✓ salvo").waitFor({ timeout: 5000 }).catch(() => {});
+await page.reload();
+await esperar();
+check("22. obs grava sozinha ao sair do campo e continua após F5",
+  (await page.locator("li", { hasText: "Batata Prime" }).locator('input[name="observacao"]').inputValue()) === "sem bacon");
+
+// 23. Fechar conta com obs digitada (sem salvar) num item pendente: obs nao se perde
+await lancar("Espetos Defumados", "Espeto de Coração");
+await esperar();
+await page.locator("li", { hasText: "Espeto de Coração" }).locator('input[name="observacao"]').fill("bem assado");
+await page.locator('button:has-text("Fechar conta")').first().click();
+await page.waitForURL(/aviso=cozinha/);
+await esperar();
+await page.locator('button:has-text("Enviar pra cozinha agora")').click();
+await page.waitForURL(new RegExp(`/cozinha/${MB}\\?em=`));
+await esperar();
+const papelFechar = await page.locator("body").innerText();
+check("23. obs digitada antes de Fechar conta chega no papel pelo aviso",
+  papelFechar.includes("ESPETO DE CORAÇÃO") && papelFechar.includes("OBS: bem assado") &&
+    papelFechar.includes("OBS: sem bacon"));
+await page.screenshot({ path: `${PRINTS}43-papel-obs.png` });
 
 console.log(`\n${ok} passaram, ${fail} falharam`);
 await browser.close();

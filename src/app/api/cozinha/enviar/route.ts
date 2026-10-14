@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { redirectUrl } from "@/lib/redirect";
 import { createClient } from "@/lib/supabase/server";
+import { salvarObservacoesDoForm } from "@/lib/observacoes";
 
 // Marca a comida pendente da comanda como enviada e abre o papel da
 // cozinha (que imprime sozinho e volta pra comanda). A mesa continua
@@ -11,6 +12,7 @@ export async function POST(request: Request) {
   const comandaId = String(formData.get("comandaId"));
 
   const supabase = await createClient();
+  if (comandaId) await salvarObservacoesDoForm(supabase, formData, comandaId);
   const { data: enviadoEm } = await supabase.rpc("enviar_cozinha", { p_comanda_id: comandaId });
 
   if (!enviadoEm) {

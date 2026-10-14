@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { redirectUrl } from "@/lib/redirect";
 import { createClient } from "@/lib/supabase/server";
+import { salvarObservacoesDoForm } from "@/lib/observacoes";
 
 export async function POST(request: Request) {
   const formData = await request.formData();
@@ -9,6 +10,7 @@ export async function POST(request: Request) {
   const confirmado = String(formData.get("confirmado") ?? "") === "1";
 
   const supabase = await createClient();
+  if (comandaId) await salvarObservacoesDoForm(supabase, formData, comandaId);
 
   // Comida que ainda nao foi pro papel da cozinha: pergunta antes de fechar
   // (13/10/2026) - evita a mesa pagar algo que a cozinha nunca recebeu.

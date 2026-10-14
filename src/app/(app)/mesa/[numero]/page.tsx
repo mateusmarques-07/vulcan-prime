@@ -13,6 +13,8 @@ import { formatHoraSaoPaulo } from "@/lib/timezone";
 import { RealtimeRefresh } from "@/components/RealtimeRefresh";
 import { BotaoConfirmar } from "@/components/BotaoConfirmar";
 import { CardapioSidebar } from "./CardapioSidebar";
+import { ObservacaoItem } from "./ObservacaoItem";
+import { FormComObservacoes } from "./FormComObservacoes";
 
 export default async function ComandaPage({
   params,
@@ -80,7 +82,7 @@ export default async function ComandaPage({
                 Reimprimir último envio
               </Link>
             )}
-            <form method="POST" action="/api/cozinha/enviar">
+            <FormComObservacoes action="/api/cozinha/enviar">
               <input type="hidden" name="numero" value={mesa.numero} />
               <input type="hidden" name="comandaId" value={comanda.id} />
               <button
@@ -90,10 +92,10 @@ export default async function ComandaPage({
               >
                 {pendentesCozinha > 0
                   ? `Enviar para cozinha (${pendentesCozinha})`
-                  : "Cozinha em dia"}
+                  : "Enviar para cozinha"}
               </button>
-            </form>
-            <form method="POST" action="/api/mesas/fechar-conta">
+            </FormComObservacoes>
+            <FormComObservacoes action="/api/mesas/fechar-conta">
               <input type="hidden" name="numero" value={mesa.numero} />
               <input type="hidden" name="comandaId" value={comanda.id} />
               <button
@@ -103,7 +105,7 @@ export default async function ComandaPage({
               >
                 Fechar conta
               </button>
-            </form>
+            </FormComObservacoes>
           </div>
         )}
       </header>
@@ -191,23 +193,11 @@ export default async function ComandaPage({
                     </form>
                   </div>
 
-                  <form method="POST" action="/api/itens/observacao" className="mt-2 flex gap-2">
-                    <input type="hidden" name="itemId" value={item.id} />
-                    <input type="hidden" name="numero" value={mesa.numero} />
-                    <input
-                      type="text"
-                      name="observacao"
-                      defaultValue={item.observacao ?? ""}
-                      placeholder="Observação (ex: sem cebola)"
-                      className="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-1.5 text-sm text-white outline-none focus:border-orange-500"
-                    />
-                    <button
-                      type="submit"
-                      className="shrink-0 rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:border-orange-500 hover:text-orange-500"
-                    >
-                      Salvar
-                    </button>
-                  </form>
+                  <ObservacaoItem
+                    itemId={item.id}
+                    numero={mesa.numero}
+                    inicial={item.observacao ?? ""}
+                  />
                 </li>
               ))}
             </ul>
@@ -231,7 +221,7 @@ export default async function ComandaPage({
               Quer enviar antes de fechar a conta?
             </p>
             <div className="flex flex-col gap-2">
-              <form method="POST" action="/api/cozinha/enviar">
+              <FormComObservacoes action="/api/cozinha/enviar">
                 <input type="hidden" name="numero" value={mesa.numero} />
                 <input type="hidden" name="comandaId" value={comanda.id} />
                 <button
@@ -240,8 +230,8 @@ export default async function ComandaPage({
                 >
                   Enviar pra cozinha agora
                 </button>
-              </form>
-              <form method="POST" action="/api/mesas/fechar-conta">
+              </FormComObservacoes>
+              <FormComObservacoes action="/api/mesas/fechar-conta">
                 <input type="hidden" name="numero" value={mesa.numero} />
                 <input type="hidden" name="comandaId" value={comanda.id} />
                 <input type="hidden" name="confirmado" value="1" />
@@ -251,7 +241,7 @@ export default async function ComandaPage({
                 >
                   Fechar conta mesmo assim
                 </button>
-              </form>
+              </FormComObservacoes>
               <Link
                 href={`/mesa/${mesa.numero}`}
                 className="py-2 text-center text-sm text-neutral-400 hover:text-white"
